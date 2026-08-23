@@ -2,7 +2,9 @@ import io
 from pathlib import Path
 
 import pdfplumber
+import pytesseract
 from docx import Document
+from pdf2image import convert_from_bytes
 
 class UnsupportedFileType(ValueError):
     pass
@@ -22,6 +24,13 @@ def extract_text(filename: str, content: bytes) -> str:
 
 
 def _extract_pdf(content: bytes) -> str:
+    text = _extract_pdf_text_layer(content)
+    if text.strip():
+        return text
+    return _extract_pdf_via_ocr(content)
+
+
+def _extract_pdf_text_layer(content: bytes) -> str:
     text_parts = []
     with pdfplumber.open(io.BytesIO(content)) as pdf:
         for page in pdf.pages:
@@ -29,6 +38,13 @@ def _extract_pdf(content: bytes) -> str:
             if page_text:
                 text_parts.append(page_text)
     return "\n\n".join(text_parts)
+
+
+def _extract_pdf_via_ocr(content: bytes) -> str:
+    """Fallback for scanned/image-only PDFs with no text layer."""
+    images = convert_from_bytes(content)
+    text_parts = [pytesseract.image_to_string(image) for image in images]
+    return "\n\n".join(part for part in text_parts if part.strip())
 
 def _extract_docx(content: bytes) -> str:
     document = Document(io.BytesIO(content))
