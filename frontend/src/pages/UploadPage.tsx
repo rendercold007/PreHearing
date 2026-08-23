@@ -4,17 +4,17 @@ import type {FormEvent} from "react";
 interface UploadPageProps{
     status: "idle" | "loading" | "error" | "done";
     error: string | null;
-    onFileSelected: (file: File) => void;
+    onFilesSelected: (files: File[]) => void;
 }
 
-export function UploadPage({status, error, onFileSelected} : UploadPageProps){
+export function UploadPage({status, error, onFilesSelected} : UploadPageProps){
     const inputRef = useRef<HTMLInputElement>(null);
 
     function handleSubmit(event : FormEvent){
         event.preventDefault();
-        const file = inputRef.current?.files?.[0];
-        if(file){
-            onFileSelected(file);
+        const files = inputRef.current?.files;
+        if(files && files.length>0){
+            onFilesSelected(Array.from(files));
         }
     }
 
@@ -23,7 +23,7 @@ export function UploadPage({status, error, onFileSelected} : UploadPageProps){
             <p>Upload a case file(PDF or DOCX) to generate hearing arguments.</p>
 
             <form onSubmit={handleSubmit}>
-                <input ref={inputRef} type="file" accept=".pdf,.docx" disabled={status === "loading"} />
+                <input ref={inputRef} type="file" accept=".pdf,.docx" multiple disabled={status === "loading"} />
                 <button type="submit" disabled={status === "loading"}>
                     {status === "loading" ? "Analyzing..." : "Analyze"}
                 </button>

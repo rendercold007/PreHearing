@@ -15,9 +15,10 @@ Respond with a single JSON object with exactly these keys:
 Only use information present in the case file. Do not invent facts."""
 
 
-def extract_understanding(case_text: str) -> CaseUnderstanding:
+def extract_understanding(case_text: str, model: str) -> CaseUnderstanding:
     result = complete_json(
         system_prompt=_SYSTEM_PROMPT,
         user_prompt=case_text,
+        model=model,
     )
     return CaseUnderstanding.model_validate(result)

@@ -2,44 +2,61 @@
 
 ## What this project is
 
-PreHearing takes a lawyer's case file and produces arguments for a hearing. That is the entire scope.
+PreHearing takes a lawyer's case file(s) and produces arguments for a hearing.
 
-Pipeline:
+The target shape is a 7-stage pipeline. Only some stages are built — this table is the
+roadmap, not a claim that all of it exists:
 
-1. **Ingest** — accept a case file (document(s) provided by the lawyer) as input.
-2. **Understand** — parse and comprehend the case file's facts, claims, and relevant details.
-3. **Generate arguments** — produce arguments the lawyer can use in the hearing, based on that understanding.
+| # | Stage | What it does | Tier | Status |
+|---|-------|---------------|------|--------|
+| 01 | **Ingest** | Parse PDF/DOCX (OCR fallback for scans), segment into page/paragraph chunks, dedup by content hash. | deterministic | **Built** |
+| 02 | **Understand** | Extract parties, facts, claims, defenses, procedural history into a structured `CaseUnderstanding`. | cheap/mid | **Built** (uses `mid`) |
+| 03 | **Identify issues** | Derive a ranked list of legal/factual issues before the court. | mid | Not built |
+| 04 | **Research** | Hybrid retrieval + rerank over case law/statutes for real citations. | retrieval/rerank | **Deferred — no legal corpus source decided yet.** Building embeddings/retrieval now would have no real corpus to search, which is exactly the kind of speculative abstraction the scope rule below forbids. Revisit once there's a corpus (own vector DB, or a legal database API). |
+| 05 | **Build arguments** | Map issue → proposition → authority → facts → conclusion. | strong | **Built** (as a flatter version: facts/issues → arguments; no authority-mapping yet since Research isn't built) |
+| 06 | **Stress-test** | Adverse authorities, factual weaknesses, likely objections, judge questions. | strong | Not built |
+| 07 | **Prepare** | Assemble hearing brief, oral-argument outline, checklist as an exportable pack. | strong | Not built |
+
+Also **not built yet**: citation fields (which document/page a fact or argument came
+from) on the response schemas. The Ingest stage already tracks per-chunk source
+document + page/paragraph, specifically so that upgrade is straightforward later —
+see `DocumentChunk` in `parser.py`.
 
 ## Scope boundaries
 
-- Do not add features beyond ingest → understand → generate arguments (e.g. no case management, scheduling, billing, client CRM, document drafting beyond arguments, multi-case dashboards, etc.) unless the user explicitly asks.
-- Keep the pipeline simple and linear. Don't introduce speculative abstractions, plugins, or configurability for hypothetical future steps.
+- Build toward the roadmap above, stage by stage. Don't jump ahead to a later stage
+  (especially Research/Stage 04) before its prerequisites are actually decided/built.
+- Do not add features outside this pipeline (case management, scheduling, billing,
+  client CRM, multi-case dashboards, etc.) unless explicitly asked.
+- Don't introduce speculative abstractions, plugins, or configurability for
+  hypothetical future steps — the Research-stage deferral above is the concrete
+  example of this rule in action.
 - If a request falls outside this scope, flag it rather than silently expanding the project.
 
 ## Tech stack
 
-- **Backend:** FastAPI (Python). Exposes a small REST API for upload, understanding, and argument generation. Package management via `uv`.
-- **File parsing:** `pypdf`/`pdfplumber` for PDF, `python-docx` for DOCX/DOC. Text is extracted locally and passed to the LLM — one uniform path for both formats, rather than relying on a provider's native document ingestion.
-- **OCR fallback:** for scanned/image-only PDFs with no text layer, `pdf2image` (needs the `poppler-utils` system package) rasterizes each page and `pytesseract` (needs the `tesseract-ocr` system package) OCRs it. Only triggers when `pdfplumber` extracts no text — text-based PDFs never touch OCR.
-- **LLM:** OpenRouter API (OpenAI-compatible), accessed via the `openai` Python SDK with `base_url="https://openrouter.ai/api/v1"` and an OpenRouter API key. Model is set via an `OPENROUTER_MODEL` env var (no default picked yet) so it can be changed without code changes. Used for both the "understand" step (structured extraction of facts/claims/parties) and the "generate arguments" step.
-- **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Three screens: upload case file, view extracted understanding, view generated arguments.
-- **Persistence:** none for now. Each case file is processed synchronously and results are returned in the response — no database, no stored history. Add persistence only when there's an explicit need to save/revisit past cases.
+- **Backend:** FastAPI (Python). One endpoint, `POST /api/analyze`, runs the built stages of the pipeline. Package management via `uv`.
+- **File parsing:** `pdfplumber` for PDF, `python-docx` for DOCX. Multiple files per case are supported — each is parsed into per-page (PDF) or per-paragraph (DOCX) chunks, then the whole set is deduplicated by content hash (catches the same exhibit uploaded twice). See `DocumentChunk` in `ingest/parser.py`.
+- **OCR fallback:** for scanned/image-only PDFs with no text layer, `pdf2image` (needs the `poppler-utils` system package) rasterizes each page and `pytesseract` (needs the `tesseract-ocr` system package) OCRs it, one chunk per page. Only triggers when `pdfplumber` extracts no text — text-based PDFs never touch OCR.
+- **LLM:** OpenRouter API (OpenAI-compatible), via the `openai` Python SDK with `base_url="https://openrouter.ai/api/v1"`. **Tiered model config** — three env vars, `OPENROUTER_MODEL_CHEAP` / `OPENROUTER_MODEL_MID` / `OPENROUTER_MODEL_STRONG` — let different stages use different models. Currently: Understand uses `mid`, Generate Arguments uses `strong`. `cheap` is provisioned but has no consumer yet (candidate for a future lighter-weight stage like Identify Issues).
+- **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Upload supports multiple files at once; screens are upload → understanding → arguments.
+- **Persistence:** none for now. Each case is processed synchronously and results are returned in the response — no database, no stored history. Add persistence only when there's an explicit need to save/revisit past cases.
 
 ## Project structure
 
 ```
 backend/
-  pyproject.toml         deps (fastapi, uvicorn, pypdf, pdfplumber, python-docx, openai, ...)
-  .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL / OPENROUTER_BASE_URL template
+  pyproject.toml         deps (fastapi, uvicorn, pdfplumber, python-docx, pytesseract, pdf2image, openai, ...)
+  .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL_CHEAP / _MID / _STRONG / OPENROUTER_BASE_URL template
   app/
-    config.py            Settings (pydantic-settings), loads .env
+    config.py            Settings (pydantic-settings) with model_for_tier(tier) helper, loads .env
     main.py               FastAPI app, CORS, mounts router under /api
-    api/routes.py         POST /api/analyze — the one endpoint, runs the full pipeline
-    ingest/parser.py      extract_text() — PDF (pdfplumber, OCR fallback via pdf2image+pytesseract) / DOCX (python-docx) → plain text
+    api/routes.py         POST /api/analyze — accepts multiple files, runs the built pipeline stages
+    ingest/parser.py      DocumentChunk dataclass; parse_documents() — multi-file → per-page/paragraph chunks, deduped by content hash; OCR fallback per page
     models/schemas.py     Party, CaseUnderstanding, Argument, CaseAnalysis (Pydantic)
-    llm/client.py          get_client() / complete_json() — thin OpenRouter (OpenAI SDK) wrapper
-    understand/extractor.py   extract_understanding(text) -> CaseUnderstanding
-    arguments/generator.py    generate_arguments(understanding) -> list[Argument]
+    llm/client.py          get_client() / complete_json(system_prompt, user_prompt, model) — thin OpenRouter (OpenAI SDK) wrapper, model chosen by the caller
+    understand/extractor.py   extract_understanding(text, model) -> CaseUnderstanding
+    arguments/generator.py    generate_arguments(understanding, model) -> list[Argument]
 
 frontend/
   package.json, vite.config.ts, tsconfig.json, index.html
@@ -47,17 +64,17 @@ frontend/
     main.tsx              entry point, imports index.css
     index.css             basic styling (cards, buttons, alert)
     App.tsx                state machine (idle/loading/error/done), owns the API call
-    api/client.ts          analyzeCaseFile() — POSTs file to /api/analyze
+    api/client.ts          analyzeCaseFiles(files) — POSTs multiple files to /api/analyze
     types/index.ts         TS mirrors of the backend Pydantic schemas
     pages/
-      UploadPage.tsx        file picker, shows loading/error state
+      UploadPage.tsx        multi-file picker, shows loading/error state
       UnderstandingPage.tsx  renders CaseUnderstanding
       ArgumentsPage.tsx      renders list[Argument]
 ```
 
 ## Status
 
-**Working end-to-end**, verified manually through the browser: upload a PDF/DOCX → backend parses it, calls the LLM to extract a structured understanding, calls the LLM again to generate arguments, returns both in one response → frontend renders all three screens.
+**Working end-to-end**, verified manually through the browser: upload one or more PDF/DOCX files → backend parses + chunks + dedupes them, calls the `mid`-tier LLM to extract a structured understanding, calls the `strong`-tier LLM to generate arguments, returns both in one response → frontend renders all three screens.
 
 To run it:
 ```bash
@@ -66,7 +83,7 @@ sudo apt-get update && sudo apt-get install -y tesseract-ocr   # poppler-utils u
 
 # backend
 cd backend
-cp .env.example .env   # fill in OPENROUTER_API_KEY and OPENROUTER_MODEL
+cp .env.example .env   # fill in OPENROUTER_API_KEY, OPENROUTER_MODEL_CHEAP/MID/STRONG
 uv sync
 uv run uvicorn app.main:app --reload
 
@@ -76,6 +93,6 @@ npm install
 npm run dev
 ```
 
-Known-good model note: DeepSeek V4 Flash did not reliably follow the JSON-mode schema instructions during testing (returned malformed JSON). Models with solid JSON-mode support (e.g. `openai/gpt-4o-mini`, `google/gemini-2.0-flash-001`) worked correctly. Pick `OPENROUTER_MODEL` accordingly.
+Known-good model note: DeepSeek V4 Flash did not reliably follow the JSON-mode schema instructions during testing (returned malformed JSON). Currently using a Mistral model for `MID` (Understand) and `openai/gpt-4o` for `STRONG` (Generate Arguments) — both work well. Pick models with solid JSON-mode support.
 
-Not yet done: no automated tests, no deployment setup.
+Not yet done: Stages 03/04/06/07 (see roadmap table above), citation fields on the response schemas, automated tests, deployment setup.

@@ -13,13 +13,12 @@ def get_client() -> OpenAI:
         base_url=settings.openrouter_base_url,
     )
 
-def complete_json(system_prompt: str, user_prompt: str) -> dict:
+def complete_json(system_prompt: str, user_prompt: str, model: str) -> dict:
     """Call the llm and parse its response as JSON"""
-    settings = get_settings()
     client = get_client()   
 
     response = client.chat.completions.create(
-        model=settings.openrouter_model,
+        model=model,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": system_prompt},

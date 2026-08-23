@@ -13,9 +13,10 @@ Respond with a single JSON object with exactly one key:
 
 Only use the facts, claims, and issues given to you. Do not invent facts or citations."""
 
-def generate_arguments(understanding: CaseUnderstanding) -> list[Argument]:
+def generate_arguments(understanding: CaseUnderstanding, model: str) -> list[Argument]:
     result = complete_json(
         system_prompt=_SYSTEM_PROMPT,
         user_prompt=understanding.model_dump_json(),
+        model=model,
     )
     return [Argument.model_validate(item) for item in result["arguments"]]

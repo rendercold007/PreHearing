@@ -2,10 +2,12 @@ import type { CaseAnalysis } from "../types";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
-export async function analyzeCaseFile(file: File): Promise<CaseAnalysis>{
+export async function analyzeCaseFiles(files: File[]): Promise<CaseAnalysis>{
     const formData = new FormData();
-    formData.append("file",file);
-
+    for(const file of files){
+    formData.append("files",file);
+    }
+    
     const response = await fetch(`${API_BASE_URL}/analyze`,{
         method: "POST",
         body: formData,

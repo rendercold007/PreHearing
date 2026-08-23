@@ -1,25 +1,31 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.arguments.generator import generate_arguments
-from app.ingest.parser import UnsupportedFileType, extract_text
+from app.config import get_settings
+from app.ingest.parser import UnsupportedFileType, parse_documents
 from app.models.schemas import CaseAnalysis
 from app.understand.extractor import extract_understanding
 
 router = APIRouter()
 
 @router.post("/analyze", response_model=CaseAnalysis)
-async def analyze_case(file: UploadFile = File(...)) -> CaseAnalysis:
-    content = await file.read()
+async def analyze_case(files: list[UploadFile] = File(...)) -> CaseAnalysis:
+    raw_files = [(f.filename,await f.read()) for f in files]
 
     try:
-        case_text = extract_text(file.filename, content)
+        chunks = parse_documents(raw_files)
     except UnsupportedFileType as exc:
-        raise HTTPException(stauts_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if not case_text.strip():
+    if not chunks:
         raise HTTPException(status_code=400, detail="No text could be extracted from the file.")
 
-    understanding = extract_understanding(case_text)
-    arguments = generate_arguments(understanding)
+    case_text = "\n\n".join(
+        f"[{chunk.source_document} - {chunk.location}]\n {chunk.text}" for chunk in chunks
+    )    
+    
+    settings = get_settings()
+    understanding = extract_understanding(case_text,model=settings.model_for_tier("mid"))
+    arguments = generate_arguments(understanding, model=settings.model_for_tier("strong"))
 
     return CaseAnalysis(understanding=understanding, arguments=arguments)        

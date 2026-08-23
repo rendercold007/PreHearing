@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {analyzeCaseFile} from "./api/client";
+import {analyzeCaseFiles} from "./api/client";
 import type {CaseAnalysis} from "./types";
 import {UploadPage} from "./pages/UploadPage";
 import { UnderstandingPage } from "./pages/UnderstandingPage";
@@ -13,12 +13,12 @@ function App(){
     const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    async function handleFileSelected(file: File){
+    async function handleFilesSelected(files: File[]){
         setStatus("loading");
         setError(null);
 
         try {
-            const result = await analyzeCaseFile(file);
+            const result = await analyzeCaseFiles(files);
             setAnalysis(result);
             setStatus("done");
         }
@@ -39,7 +39,7 @@ function App(){
             <h1>PreHearing</h1>
 
             {status != "done" &&(
-                <UploadPage status={status} error={error} onFileSelected={handleFileSelected} />
+                <UploadPage status={status} error={error} onFilesSelected={handleFilesSelected} />
             )}
 
             {status === "done" && analysis && (

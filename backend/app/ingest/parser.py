@@ -1,4 +1,6 @@
+import hashlib
 import io
+from dataclasses import dataclass
 from pathlib import Path
 
 import pdfplumber
@@ -10,43 +12,94 @@ class UnsupportedFileType(ValueError):
     pass
 
 
-def extract_text(filename: str, content: bytes) -> str:
-    """Extract raw texr from a case file. Supports PDF and DOCX."""
+@dataclass
+class DocumentChunk:
+    source_document: str
+    location: str
+    text: str
+
+    @property
+    def content_hash(self) -> str:
+        return hashlib.sha256(self.text.strip().encode("utf-8")).hexdigest()
+
+def parse_documents(files: list[tuple[str, bytes]]) -> list[DocumentChunk]:
+    """Parse multiple case files into deduplicated chunks"""
+    all_chunks: list[DocumentChunk] = []
+    for filename, content in files:
+        all_chunks.extend(_parse_file(filename,content))
+    return _dedupe(all_chunks)
+
+def _dedupe(chunks: list[DocumentChunk]) -> list[DocumentChunk]:
+    seen_hashes: set[str] = set()
+    deduped: list[DocumentChunk] = []
+    for chunk in chunks:
+        if chunk.content_hash in seen_hashes:
+            continue
+        seen_hashes.add(chunk.content_hash)
+        deduped.append(chunk)
+    return deduped
+
+def _parse_file(filename: str, content: bytes) -> list[DocumentChunk]:
     suffix = Path(filename).suffix.lower()
 
     if suffix == ".pdf":
-        return _extract_pdf(content)
+        return _extract_pdf_chunks(filename, content)
 
     if suffix == ".docx":
-        return _extract_docx(content)
+        return _extract_docx_chunks(filename, content) 
 
     raise UnsupportedFileType(f"Unsupported file type: {suffix or 'unknown'}")
 
+def _extract_pdf_chunks(filename: str, content: bytes) -> list[DocumentChunk]:
+    chunks = _extract_pdf_text_layer_chunks(filename, content)
+    if chunks:
+        return chunks
+    return _extract_pdf_ocr_chunks(filename, content)
 
-def _extract_pdf(content: bytes) -> str:
-    text = _extract_pdf_text_layer(content)
-    if text.strip():
-        return text
-    return _extract_pdf_via_ocr(content)
-
-
-def _extract_pdf_text_layer(content: bytes) -> str:
-    text_parts = []
+def _extract_pdf_text_layer_chunks(filename: str, content: bytes) -> list[DocumentChunk]:
+    chunks = []
     with pdfplumber.open(io.BytesIO(content)) as pdf:
-        for page in pdf.pages:
+        for page_number , page in enumerate(pdf.pages, start=1):
             page_text = page.extract_text()
-            if page_text:
-                text_parts.append(page_text)
-    return "\n\n".join(text_parts)
+            chunks.append(
+                DocumentChunk(
+                    source_document=filename,
+                    location=f"page{page_number}",
+                    text=page_text,
+                )
+            )
+    return chunks
 
-
-def _extract_pdf_via_ocr(content: bytes) -> str:
-    """Fallback for scanned/image-only PDFs with no text layer."""
+def _extract_pdf_ocr_chunks(filename: str, content: bytes) -> list[DocumentChunk]:
+    """fallback from scanned/image-only PDFs with no text layer."""
+    chunks = []
     images = convert_from_bytes(content)
-    text_parts = [pytesseract.image_to_string(image) for image in images]
-    return "\n\n".join(part for part in text_parts if part.strip())
+    for page_number, image in enumerate(images, start=1):
+        page_text = pytesseract.image_to_string(image)
+        if page_text.strip():
+            chunks.append(
+                DocumentChunk(
+                    source_document=filename,
+                    location=f"page{page_number}",
+                    text=page_text,
+                )
+            )
+    return chunks
 
-def _extract_docx(content: bytes) -> str:
+
+def _extract_docx_chunks(filename: str, content: bytes) -> list[DocumentChunk]:
     document = Document(io.BytesIO(content))
-    paragraphs = [p.text for p in document.paragraphs if p.text.strip()]  
-    return "\n\n".join(paragraphs)
+    chunks = []
+    paragraph_number = 0
+    for paragraph in document.paragraphs:
+        if not paragraph.text.strip():
+            continue
+        paragraph_number += 1
+        chunks.append(
+            DocumentChunk(
+                source_document=filename,
+                location=f"paragraph {paragraph_number}",
+                text=paragraph.text,
+            )
+        )
+    return chunks           
