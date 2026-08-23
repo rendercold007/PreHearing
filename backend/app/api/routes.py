@@ -3,7 +3,9 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.arguments.generator import generate_arguments
 from app.config import get_settings
 from app.ingest.parser import UnsupportedFileType, parse_documents
+from app.issues.identifier import identify_issues
 from app.models.schemas import CaseAnalysis
+from app.stresstest.tester import stress_test
 from app.understand.extractor import extract_understanding
 
 router = APIRouter()
@@ -26,6 +28,13 @@ async def analyze_case(files: list[UploadFile] = File(...)) -> CaseAnalysis:
     
     settings = get_settings()
     understanding = extract_understanding(case_text,model=settings.model_for_tier("mid"))
-    arguments = generate_arguments(understanding, model=settings.model_for_tier("strong"))
+    issues = identify_issues(understanding, model=settings.model_for_tier("mid"))
+    arguments = generate_arguments(understanding, issues,  model=settings.model_for_tier("strong"))
+    stress_test_points = stress_test(understanding, issues, arguments, model=settings.model_for_tier("strong"))
 
-    return CaseAnalysis(understanding=understanding, arguments=arguments)        
+    return CaseAnalysis(
+        understanding=understanding,
+        issues=issues,
+        arguments=arguments,
+        stress_test=stress_test
+    )        

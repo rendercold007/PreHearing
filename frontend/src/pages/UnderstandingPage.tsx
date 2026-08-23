@@ -19,7 +19,7 @@ export function UnderstandingPage({ understanding }: UnderstandingPageProps) {
       <ul>
         {understanding.parties.map((party) => (
           <li key={party.name}>
-            {party.name} â {party.role}
+            {party.name} - {party.role}
           </li>
         ))}
       </ul>
@@ -38,10 +38,10 @@ export function UnderstandingPage({ understanding }: UnderstandingPageProps) {
         ))}
       </ul>
 
-      <h3>Legal issues</h3>
+      <h3>Disputed Points</h3>
       <ul>
-        {understanding.legal_issues.map((issue) => (
-          <li key={issue}>{issue}</li>
+        {understanding.disputed_points.map((point) => (
+          <li key={point}>{point}</li>
         ))}
       </ul>
     </section>

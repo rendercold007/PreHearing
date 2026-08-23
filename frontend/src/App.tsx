@@ -3,7 +3,9 @@ import {analyzeCaseFiles} from "./api/client";
 import type {CaseAnalysis} from "./types";
 import {UploadPage} from "./pages/UploadPage";
 import { UnderstandingPage } from "./pages/UnderstandingPage";
+import {IssuesPage} from "./pages/IssuesPage";
 import {ArgumentsPage} from "./pages/ArgumentsPage";
+import { StressTestPage } from "./pages/StressTestPage";
 
 
 type Status = "idle" | "loading" | "error" | "done";
@@ -46,7 +48,9 @@ function App(){
                 <>
                 <button onClick={handleReset}>Analyze another case</button>
                 <UnderstandingPage understanding={analysis.understanding}/>
+                <IssuesPage issues={analysis.issues} />
                 <ArgumentsPage arguments={analysis.arguments} />
+                <StressTestPage stressTest={analysis.stress_test} />
                 </>
             )}
         </main>

@@ -61,10 +61,12 @@ def _extract_pdf_text_layer_chunks(filename: str, content: bytes) -> list[Docume
     with pdfplumber.open(io.BytesIO(content)) as pdf:
         for page_number , page in enumerate(pdf.pages, start=1):
             page_text = page.extract_text()
-            chunks.append(
+            if page_text and page_text.strip():
+
+                chunks.append(
                 DocumentChunk(
                     source_document=filename,
-                    location=f"page{page_number}",
+                    location=f"page {page_number}",
                     text=page_text,
                 )
             )

@@ -9,7 +9,7 @@ Respond with a single JSON object with exactly these keys:
 - "parties": list of objects with "name" and "role" (e.g. "plaintiff", "defendant")
 - "key_facts": list of strings, the material facts of the case
 - "claims": list of strings, the claims or charges being made
-- "legal_issues": list of strings, the legal questions the hearing must resolve
+- "disputed_points": list of strings, points of fact or law that the parties disagree on
 - "summary": string, a concise narrative summary of the case
 
 Only use information present in the case file. Do not invent facts."""
