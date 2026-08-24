@@ -21,6 +21,8 @@ export interface Argument {
     point: string;
     supporting_facts: string[];
     legal_basis: string | null;
+    counter_argument: string | null;
+    rebuttal: string | null;
 }
 
 export interface StressTestPoint {
@@ -30,9 +32,26 @@ export interface StressTestPoint {
 }
 
 
+export interface OutlinePoint {
+    heading: string;
+    talking_points: string[];
+}
+
+export interface ChecklistItem {
+    category: string;
+    item: string;
+}
+
+export interface HearingPrep {
+    brief: string;
+    outline: OutlinePoint[];
+    checklist: ChecklistItem[];
+}
+
 export interface CaseAnalysis {
     understanding: CaseUnderstanding;
     issues: Issue[];
     arguments: Argument[];
     stress_test: StressTestPoint[];
+    hearing_prep: HearingPrep;
 }

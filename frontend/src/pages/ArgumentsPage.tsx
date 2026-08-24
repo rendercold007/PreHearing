@@ -29,6 +29,18 @@ export function ArgumentsPage({ arguments: args }: ArgumentsPageProps) {
                 ))}
               </ul>
             )}
+
+            {argument.counter_argument && (
+              <p>
+                <strong>Counter-argument:</strong> {argument.counter_argument}
+              </p>
+            )}
+
+            {argument.rebuttal && (
+              <p>
+                <strong>Rebuttal:</strong> {argument.rebuttal}
+              </p>
+            )}
           </li>
         ))}
       </ol>

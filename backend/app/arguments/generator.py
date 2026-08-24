@@ -7,11 +7,16 @@ You will be given a structured understanding of a case and the list of issues th
 must resolve, ordered from most to least central. Produce the strongest arguments the
 lawyer can make at the hearing, addressing these issues and grounded only in the facts given.
 
+For each argument, also anticipate the strongest counter-argument opposing counsel is
+likely to raise against it, and the rebuttal that answers that counter-argument.
+
 Respond with a single JSON object with exactly one key:
 - "arguments": a list of objects, each with:
   - "point": string, the argument itself
   - "supporting_facts": list of strings, facts from the case that back this argument
   - "legal_basis": string or null, a statute/precedent/legal principle if applicable
+  - "counter_argument": string or null, the strongest counter-argument opposing counsel is likely to raise
+  - "rebuttal": string or null, how the lawyer should respond to that counter-argument
 
 Only use the facts, claims, and issues given to you. Do not invent facts or citations."""
 
