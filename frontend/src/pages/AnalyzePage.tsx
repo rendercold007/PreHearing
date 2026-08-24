@@ -10,6 +10,8 @@ import { PreparePage } from "./PreparePage";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { Logo } from "../components/Logo";
+import { useAuth } from "../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type Status = "idle" | "loading" | "error" | "done";
 type SectionKey = "understanding" | "issues" | "arguments" | "stressTest" | "prepare";
@@ -68,6 +70,13 @@ export function AnalyzePage(){
     const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [openSection, setOpenSection] = useState<SectionKey | null>(null);
+    const { email, logout } = useAuth();
+    const navigate = useNavigate();
+
+    function handleLogout(){
+        logout();
+        navigate("/");
+    }
 
     async function handleFilesSelected(files: File[]){
         setStatus("loading");
@@ -95,8 +104,15 @@ export function AnalyzePage(){
         <main>
             <header className="site-header">
                 <Logo />
+                <div className="user-menu">
+                    <span className="user-email">{email}</span>
+                    <button type="button" className="logout-button" onClick={handleLogout}>
+                        Sign out
+                    </button>
+                </div>
             </header>
 
+            <div className="page-content">
             {status != "done" &&(
                 <UploadPage status={status} error={error} onFilesSelected={handleFilesSelected} />
             )}
@@ -144,6 +160,7 @@ export function AnalyzePage(){
                 )}
                 </>
             )}
+            </div>
         </main>
     );
 }

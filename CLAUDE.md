@@ -40,7 +40,8 @@ see `DocumentChunk` in `parser.py`.
 - **OCR fallback:** for scanned/image-only PDFs with no text layer, `pdf2image` (needs the `poppler-utils` system package) rasterizes each page and `pytesseract` (needs the `tesseract-ocr` system package) OCRs it, one chunk per page. Only triggers when `pdfplumber` extracts no text — text-based PDFs never touch OCR.
 - **LLM:** OpenRouter API (OpenAI-compatible), via the `openai` Python SDK with `base_url="https://openrouter.ai/api/v1"`. **Tiered model config** — three env vars, `OPENROUTER_MODEL_CHEAP` / `OPENROUTER_MODEL_MID` / `OPENROUTER_MODEL_STRONG` — let different stages use different models. Currently: Understand and Identify Issues both use `mid`; Generate Arguments and Stress-test both use `strong`. `cheap` is provisioned but has no consumer yet.
 - **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Client-side routed (`react-router-dom`): `/` is a marketing landing page, `/app` is the upload → analyze flow. Upload supports multiple files at once; results (understanding, issues, arguments, stress test, prepare) render as a hovering card grid — each card previews its section and opens the full detail in a modal.
-- **Persistence:** none for now. Each case is processed synchronously and results are returned in the response — no database, no stored history. Add persistence only when there's an explicit need to save/revisit past cases.
+- **Auth:** email + password accounts with opaque Bearer session tokens (7-day expiry), stored in SQLite (`backend/prehearing.db`, created automatically, gitignored). Passwords hashed with stdlib pbkdf2_sha256 — no extra dependencies. `/api/analyze` requires a valid token; the frontend keeps the session in localStorage and gates `/app` behind `/login`.
+- **Persistence:** the SQLite auth DB above is the only persistence. Case analyses are still processed synchronously and returned in the response — no stored history. Add case persistence only when there's an explicit need to save/revisit past cases.
 
 ## Project structure
 
@@ -60,20 +61,27 @@ backend/
     arguments/generator.py    generate_arguments(understanding, issues, model) -> list[Argument] (each Argument also carries counter_argument + rebuttal)
     stresstest/tester.py       stress_test(understanding, issues, arguments, model) -> list[StressTestPoint]
     prepare/assembler.py       assemble_hearing_prep(understanding, issues, arguments, stress_test, model) -> HearingPrep
+    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users + sessions tables, init_db() called at startup
+    auth/security.py           pbkdf2_sha256 password hashing + session-token generation (stdlib only, no extra deps)
+    auth/routes.py             POST /api/auth/signup | /login | /logout, GET /api/auth/me; get_current_user dependency (Bearer token) — /api/analyze requires it
 
 frontend/
   package.json, vite.config.ts, tsconfig.json, index.html
   src/
     main.tsx              entry point, wraps App in BrowserRouter, imports index.css
     index.css             premium dark/gold theme — cards, modal, hero/landing sections, buttons, alert
-    App.tsx                Routes: "/" -> LandingPage, "/app" -> AnalyzePage
-    api/client.ts          analyzeCaseFiles(files) — POSTs multiple files to /api/analyze
+    App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage (wrapped in RequireAuth); all inside AuthProvider
+    api/client.ts          analyzeCaseFiles(files) — POSTs multiple files to /api/analyze with Bearer token; clears session on 401
+    api/auth.ts            signup/login/logout/validateSession + localStorage session helpers
+    auth/AuthContext.tsx   AuthProvider + useAuth() — session state, validates stored token via /auth/me on load
+    auth/RequireAuth.tsx   route guard — redirects to /login (preserving intended destination) when not authenticated
     types/index.ts         TS mirrors of the backend Pydantic schemas
     components/
       Card.tsx              clickable preview card (icon, title, preview text) used on the results grid
       Modal.tsx              overlay dialog (closes on backdrop click, close button, or Escape)
     pages/
-      LandingPage.tsx        marketing page at "/" — hero, "How it works" steps, feature grid, CTA into /app
+      LandingPage.tsx        marketing page at "/" — nav, hero, "How it works" steps, deliverables, feature grid, FAQ, CTA band, footer
+      AuthPage.tsx           login/signup form (mode prop), used at /login and /signup
       AnalyzePage.tsx        state machine (idle/loading/error/done), owns the API call; on done, renders the result-section card grid and opens each section's page component in a Modal
       UploadPage.tsx        multi-file picker, shows loading/error state
       UnderstandingPage.tsx  renders CaseUnderstanding (also used standalone, inside AnalyzePage's modal)

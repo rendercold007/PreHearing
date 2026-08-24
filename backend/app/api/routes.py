@@ -1,6 +1,7 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.arguments.generator import generate_arguments
+from app.auth.routes import CurrentUser, get_current_user
 from app.config import get_settings
 from app.ingest.parser import UnsupportedFileType, parse_documents
 from app.issues.identifier import identify_issues
@@ -12,7 +13,10 @@ from app.understand.extractor import extract_understanding
 router = APIRouter()
 
 @router.post("/analyze", response_model=CaseAnalysis)
-async def analyze_case(files: list[UploadFile] = File(...)) -> CaseAnalysis:
+async def analyze_case(
+    files: list[UploadFile] = File(...),
+    user: CurrentUser = Depends(get_current_user),
+) -> CaseAnalysis:
     raw_files = [(f.filename,await f.read()) for f in files]
 
     try:
