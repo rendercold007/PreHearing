@@ -7,6 +7,12 @@ interface PreparePageProps {
 function buildExportText(hearingPrep: HearingPrep): string {
   const lines: string[] = [];
 
+  lines.push(
+    "AI-GENERATED — verify every fact and authority against the source documents",
+    "and linked judgments before relying on this in court.",
+    "",
+  );
+
   lines.push("HEARING BRIEF", "=============", "", hearingPrep.brief, "");
 
   lines.push("ORAL ARGUMENT OUTLINE", "=====================", "");

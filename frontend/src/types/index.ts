@@ -3,10 +3,20 @@ export interface Party {
     role: string;
 }
 
+export interface Citation {
+    source_document: string;
+    location: string;
+}
+
+export interface CitedFact {
+    text: string;
+    citations: Citation[];
+}
+
 export interface CaseUnderstanding {
     case_type: string;
     parties: Party[];
-    key_facts: string[];
+    key_facts: CitedFact[];
     claims: string[];
     disputed_points: string[];
     summary: string;
@@ -19,7 +29,8 @@ export interface Issue{
 }
 export interface Argument {
     point: string;
-    supporting_facts: string[];
+    supporting_facts: CitedFact[];
+    authorities: Authority[];
     legal_basis: string | null;
     counter_argument: string | null;
     rebuttal: string | null;
@@ -28,6 +39,7 @@ export interface Argument {
 export interface StressTestPoint {
   category: string;
   point: string;
+  authorities: Authority[];
   suggested_response: string | null;
 }
 
@@ -53,8 +65,9 @@ export interface CaseAnalysis {
     issues: Issue[];
     arguments: Argument[];
     stress_test: StressTestPoint[];
-    hearing_prep: HearingPrep;
+    hearing_prep: HearingPrep | null;
     research: IssueResearch[];
+    warnings: string[];
 }
 
 export interface Authority {

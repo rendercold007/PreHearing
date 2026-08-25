@@ -1,4 +1,5 @@
 import type { CaseUnderstanding } from "../types";
+import { Citations } from "../components/Citations";
 
 interface UnderstandingPageProps {
   understanding: CaseUnderstanding;
@@ -27,7 +28,9 @@ export function UnderstandingPage({ understanding }: UnderstandingPageProps) {
       <h3>Key facts</h3>
       <ul>
         {understanding.key_facts.map((fact) => (
-          <li key={fact}>{fact}</li>
+          <li key={fact.text}>
+            {fact.text} <Citations citations={fact.citations} />
+          </li>
         ))}
       </ul>
 

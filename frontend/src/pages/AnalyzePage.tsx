@@ -13,6 +13,7 @@ import { Logo } from "../components/Logo";
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {ResearchPage} from "./ResearchPage";
+import { AiDisclaimer } from "../components/AiDisclaimer";
 
 type Status = "idle" | "loading" | "error" | "done";
 type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
@@ -70,7 +71,7 @@ function buildSections(analysis: CaseAnalysis) {
             key: "prepare" as const,
             icon: "📑",
             title: "Prepare",
-            preview: truncate(analysis.hearing_prep.brief, 140),
+            preview: analysis.hearing_prep ? truncate(analysis.hearing_prep.brief, 140): "The Prepare pack could not be generated on this run.",
         },
     ];
 }
@@ -80,6 +81,7 @@ export function AnalyzePage(){
     const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [openSection, setOpenSection] = useState<SectionKey | null>(null);
+    const [progress, setProgress] = useState<Record<string, "running" | "done">>({});
     const { email, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -91,9 +93,15 @@ export function AnalyzePage(){
     async function handleFilesSelected(files: File[]){
         setStatus("loading");
         setError(null);
+        setProgress({});
 
         try {
-            const result = await analyzeCaseFiles(files);
+            const result = await analyzeCaseFiles(files, (event) => {
+                setProgress((prev) => ({
+                    ...prev,
+                    [event.stage]: event.status === "done" ? "done" : "running",
+                }));
+            });
             setAnalysis(result);
             setStatus("done");
         }
@@ -108,6 +116,7 @@ export function AnalyzePage(){
         setError(null);
         setStatus("idle");
         setOpenSection(null);
+        setProgress({});
     }
 
     return(
@@ -124,12 +133,21 @@ export function AnalyzePage(){
 
             <div className="page-content">
             {status != "done" &&(
-                <UploadPage status={status} error={error} onFilesSelected={handleFilesSelected} />
+                <UploadPage status={status} error={error} progress={progress} onFilesSelected={handleFilesSelected} />
             )}
 
             {status === "done" && analysis && (
                 <>
                 <button onClick={handleReset}>Analyze another case</button>
+                {analysis.warnings.length > 0 && (
+                    <div className="alert" role="alert">
+                        {analysis.warnings.map((w) => (
+                            <p key={w}>{w}</p>
+                        ))}
+                    </div>
+                )}
+
+                <AiDisclaimer />
 
                 <div className="card-grid">
                     {buildSections(analysis).map((section) => (
@@ -168,7 +186,7 @@ export function AnalyzePage(){
                         <StressTestPage stressTest={analysis.stress_test} />
                     </Modal>
                 )}
-                {openSection === "prepare" && (
+                {openSection === "prepare" && analysis.hearing_prep && (
                     <Modal title="Prepare" onClose={() => setOpenSection(null)}>
                         <PreparePage hearingPrep={analysis.hearing_prep} />
                     </Modal>

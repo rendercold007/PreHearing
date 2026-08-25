@@ -809,3 +809,70 @@ em {
     transform: translateY(0);
   }
 }
+
+.citations {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  vertical-align: middle;
+}
+
+.citation {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.ai-disclaimer {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.stage-progress {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.stage-progress li {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.stage-progress .stage-marker {
+  display: inline-block;
+  width: 1.2rem;
+  color: var(--text-muted);
+}
+
+.stage-progress .stage-running {
+  color: var(--text);
+}
+
+.stage-progress .stage-running .stage-marker {
+  color: var(--accent);
+}
+
+.stage-progress .stage-done {
+  color: var(--text);
+}
+
+.stage-progress .stage-done .stage-marker {
+  color: var(--accent);
+}

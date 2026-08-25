@@ -1,4 +1,5 @@
 import type { StressTestPoint } from "../types";
+import { AiDisclaimer } from "../components/AiDisclaimer";
 
 interface StressTestPageProps {
   stressTest: StressTestPoint[];
@@ -8,6 +9,7 @@ export function StressTestPage({ stressTest }: StressTestPageProps) {
   return (
     <section>
       <h2>Stress Test</h2>
+      <AiDisclaimer />
 
       {stressTest.length === 0 && <p>No weaknesses or objections were identified.</p>}
 
@@ -17,6 +19,21 @@ export function StressTestPage({ stressTest }: StressTestPageProps) {
             <p>
               <strong>{item.category}:</strong> {item.point}
             </p>
+
+            {item.authorities.length > 0 && (
+              <p>
+                <strong>They may cite:</strong>{" "}
+                {item.authorities.map((authority, index) => (
+                  <span key={authority.doc_id}>
+                    {index > 0 && "; "}
+                    <a href={authority.url} target="_blank" rel="noreferrer">
+                      {authority.title}
+                    </a>
+                    {authority.court && ` (${authority.court})`}
+                  </span>
+                ))}
+              </p>
+            )}
 
             {item.suggested_response && (
               <p>

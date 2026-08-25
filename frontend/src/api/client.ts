@@ -3,7 +3,15 @@ import { clearSession, getStoredSession } from "./auth";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
-export async function analyzeCaseFiles(files: File[]): Promise<CaseAnalysis>{
+export interface StageEvent {
+    stage: string;
+    status: "started" | "done";
+}
+
+export async function analyzeCaseFiles(
+    files: File[],
+    onStage?: (event: StageEvent) => void,
+): Promise<CaseAnalysis>{
     const formData = new FormData();
     for(const file of files){
     formData.append("files",file);
@@ -28,5 +36,43 @@ export async function analyzeCaseFiles(files: File[]): Promise<CaseAnalysis>{
         throw new Error(message);
     }
 
-    return response.json();
+    if(!response.body){
+        throw new Error("Streaming is not supported in this browser.");
+    }
+
+    // The backend streams NDJSON: stage progress events, then one result (or error) event.
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let result: CaseAnalysis | null = null;
+
+    const handleLine = (line: string) => {
+        if(!line.trim()) return;
+        const event = JSON.parse(line);
+        if(event.type === "stage"){
+            onStage?.({ stage: event.stage, status: event.status });
+        } else if(event.type === "result"){
+            result = event.analysis as CaseAnalysis;
+        } else if(event.type === "error"){
+            throw new Error(event.detail ?? "Analysis failed.");
+        }
+    };
+
+    for(;;){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newline: number;
+        while((newline = buffer.indexOf("\n")) >= 0){
+            const line = buffer.slice(0, newline);
+            buffer = buffer.slice(newline + 1);
+            handleLine(line);
+        }
+    }
+    handleLine(buffer);
+
+    if(!result){
+        throw new Error("The analysis ended unexpectedly. Please try again.");
+    }
+    return result;
 }

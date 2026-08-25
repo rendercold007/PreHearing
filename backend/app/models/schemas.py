@@ -6,10 +6,20 @@ class Party(BaseModel):
     role: str
 
 
+class Citation(BaseModel):
+    source_document: str
+    location: str
+
+
+class CitedFact(BaseModel):
+    text: str
+    citations: list[Citation] = Field(default_factory=list)
+
+
 class CaseUnderstanding(BaseModel):
     case_type: str
     parties: list[Party]
-    key_facts: list[str]
+    key_facts: list[CitedFact]
     claims: list[str]
     disputed_points: list[str]
     summary: str
@@ -21,9 +31,20 @@ class Issue(BaseModel):
     related_facts: list[str] = Field(default_factory=list)
 
 
+class Authority(BaseModel):
+    doc_id: str
+    title: str
+    court: str = ""
+    date: str = ""
+    url: str
+    snippet: str = ""
+    relevance: str = ""
+
+
 class Argument(BaseModel):
     point: str
-    supporting_facts: list[str] = Field(default_factory=list)
+    supporting_facts: list[CitedFact] = Field(default_factory=list)
+    authorities: list[Authority] = Field(default_factory=list)
     legal_basis: str | None = None
     counter_argument: str | None = None
     rebuttal: str | None = None
@@ -32,6 +53,7 @@ class Argument(BaseModel):
 class StressTestPoint(BaseModel):
     category: str
     point: str
+    authorities: list[Authority] = Field(default_factory=list)
     suggested_response: str | None = None
 
 class OutlinePoint(BaseModel):
@@ -49,15 +71,6 @@ class HearingPrep(BaseModel):
     outline: list[OutlinePoint]
     checklist: list[ChecklistItem]
 
-class Authority(BaseModel):
-    doc_id: str
-    title: str
-    court: str = ""
-    date: str = ""
-    url: str
-    snippet: str = ""
-    relevance: str = "" 
-
 class IssueResearch(BaseModel):
     issue_statement: str
     queries: list[str]
@@ -69,5 +82,6 @@ class CaseAnalysis(BaseModel):
     issues: list[Issue]
     arguments: list[Argument]
     stress_test: list[StressTestPoint]
-    hearing_prep: HearingPrep
+    hearing_prep: HearingPrep | None = None
     research: list[IssueResearch] = []
+    warnings: list[str] = []
