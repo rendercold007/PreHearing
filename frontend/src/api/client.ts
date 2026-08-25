@@ -8,10 +8,16 @@ export interface StageEvent {
     status: "started" | "done";
 }
 
+export interface AnalysisRun {
+    analysis: CaseAnalysis;
+    /** null when the run could not be saved to case history — export is unavailable then. */
+    caseId: number | null;
+}
+
 export async function analyzeCaseFiles(
     files: File[],
     onStage?: (event: StageEvent) => void,
-): Promise<CaseAnalysis>{
+): Promise<AnalysisRun>{
     const formData = new FormData();
     for(const file of files){
     formData.append("files",file);
@@ -44,7 +50,7 @@ export async function analyzeCaseFiles(
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let result: CaseAnalysis | null = null;
+    let result: AnalysisRun | null = null;
 
     const handleLine = (line: string) => {
         if(!line.trim()) return;
@@ -52,7 +58,7 @@ export async function analyzeCaseFiles(
         if(event.type === "stage"){
             onStage?.({ stage: event.stage, status: event.status });
         } else if(event.type === "result"){
-            result = event.analysis as CaseAnalysis;
+            result = { analysis: event.analysis as CaseAnalysis, caseId: event.case_id ?? null };
         } else if(event.type === "error"){
             throw new Error(event.detail ?? "Analysis failed.");
         }

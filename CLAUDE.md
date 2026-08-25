@@ -15,7 +15,7 @@ per-stage notes say what each one still lacks:
 | 04 | **Research** | Search + rerank over case law for real citations. | cheap | **Built, API-search-first** (no vector DB): per issue, `mid` generates keyword queries → Indian Kanoon search API → `mid` reranks hits by numbered index (validated server-side so it can't cite results that don't exist). Requires `INDIANKANOON_API_TOKEN`; without it the stage returns no results and the rest of the pipeline is unaffected. Runs twice: once before argument generation (supporting authorities → Stage 05) and once in adverse mode (queries/rerank flipped to the opponent's position → Stage 06). Supporting authorities also render in their own Research card. |
 | 05 | **Build arguments** | Map issue → proposition → authority → facts → conclusion; each argument also carries the strongest anticipated counter-argument and a rebuttal. | strong | **Built** (arguments are built against the Stage 03 issue list + case facts; supporting facts cited by validated fact number, and Stage 04 authorities attached by validated authority number — `Argument.authorities`) |
 | 06 | **Stress-test** | Adverse authorities, factual weaknesses, likely objections, judge questions. | strong | **Built** (stress-tests the actual understanding/issues/arguments already produced; adverse authorities from the flipped Stage 04 run attached per point by validated number — `StressTestPoint.authorities`) |
-| 07 | **Prepare** | Assemble hearing brief, oral-argument outline, checklist as an exportable pack. | strong | **Built** (assembled from the Stage 02/03/05/06 outputs already produced; export is a client-side text download, no backend file generation) |
+| 07 | **Prepare** | Assemble hearing brief, oral-argument outline, checklist as an exportable pack. | strong | **Built** (assembled from the Stage 02/03/05/06 outputs already produced; exports as a **Word document** rendered server-side from the saved case — `GET /api/cases/{id}/export.docx`, brief + outline + arguments with their citations and authorities + checklist — alongside the original client-side text download) |
 
 **Citations are built:** key facts and argument supporting-facts carry `Citation`
 (source document + page/paragraph) via the `CitedFact` schema. The extractor shows the
@@ -44,9 +44,9 @@ trick as the research rerank.
 - **Research source:** Indian Kanoon search API (`INDIANKANOON_API_TOKEN` env var; stage is skipped without it). No local corpus, embeddings, or vector DB.
 - **Graceful degradation:** if Understand fails the request 502s; any later stage failing is caught (`run_stage` in `api/routes.py`), logged, and reported in a `warnings` list on the response while the rest of the analysis still returns. `hearing_prep` is nullable for this reason.
 - **Anti-hallucination pattern (used throughout):** the LLM only ever *selects by number* from a server-side list — rerank picks search hits by index, the extractor cites facts by chunk number, the generator cites supporting facts and authorities by number, the stress-tester attaches adverse authorities by number — and invalid indices are dropped in code (`select_by_number` / `flatten_authorities` in `research/researcher.py`), so citations/authorities can't be invented.
-- **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Client-side routed (`react-router-dom`): `/` is a marketing landing page, `/app` is the upload → analyze flow. Upload supports multiple files at once; results (understanding, issues, arguments, stress test, prepare) render as a hovering card grid — each card previews its section and opens the full detail in a modal.
+- **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Client-side routed (`react-router-dom`): `/` is a marketing landing page, `/app` is the upload → analyze flow, `/cases` is the saved case history and `/cases/:caseId` reopens one (both auth-gated). A fresh run and a saved case render through the same `AnalysisResult` component, so history is a full second view of the analysis, not a summary. Upload supports multiple files at once; results (understanding, issues, arguments, stress test, prepare) render as a hovering card grid — each card previews its section and opens the full detail in a modal.
 - **Auth:** email + password accounts with opaque Bearer session tokens (7-day expiry), stored in SQLite (`backend/prehearing.db`, created automatically, gitignored). Passwords hashed with stdlib pbkdf2_sha256 — no extra dependencies. `/api/analyze` requires a valid token; the frontend keeps the session in localStorage and gates `/app` behind `/login`.
-- **Persistence:** the SQLite auth DB above is the only persistence. Case analyses are still processed synchronously and returned in the response — no stored history. Add case persistence only when there's an explicit need to save/revisit past cases.
+- **Persistence:** SQLite (`backend/prehearing.db`) holds users, sessions, and **case history**. Every successful `/api/analyze` run is saved for the user who ran it (`cases` table: title, filenames, warning count, the full `CaseAnalysis` as JSON) and the final result event carries its `case_id`. Saving is best-effort — a failure there adds a warning rather than costing the user the analysis they just waited for. Read back via `GET /api/cases` (summaries, newest first), `GET /api/cases/{id}` (summary + full analysis), `DELETE /api/cases/{id}`; every query is scoped by `user_id`, so one account can never read another's case. The analysis JSON is stored as one blob — nothing queries inside it.
 
 ## Project structure
 
@@ -54,11 +54,11 @@ trick as the research rerank.
 backend/
   pyproject.toml         deps (fastapi, uvicorn, pdfplumber, python-docx, pytesseract, pdf2image, openai, httpx, ...); dev: pytest
   .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL_CHEAP / _MID / _STRONG / OPENROUTER_BASE_URL / INDIANKANOON_API_TOKEN template
-  tests/                 pytest suite (conftest fakes Settings env; LLM calls monkeypatched): analyze-route degradation, rerank validation, citation resolution
+  tests/                 pytest suite (conftest fakes Settings env and points the DB at a per-test tmp file; LLM calls monkeypatched): analyze-route degradation, case-history save/read/ownership, DOCX export contents/scoping, rerank validation, citation resolution
   app/
     config.py            Settings (pydantic-settings) with model_for_tier(tier) helper, loads .env
     main.py               FastAPI app, CORS, mounts router under /api
-    api/routes.py         POST /api/analyze — accepts multiple files, streams NDJSON stage events + final result; run_stage() catches per-stage failures into warnings; stages run off the event loop, research passes concurrent
+    api/routes.py         POST /api/analyze — accepts multiple files, streams NDJSON stage events + final result; run_stage() catches per-stage failures into warnings; stages run off the event loop, research passes concurrent; saves the finished analysis to case history and reports its case_id
     ingest/parser.py      DocumentChunk dataclass; parse_documents() — multi-file → per-page/paragraph chunks, deduped by content hash; OCR fallback per page
     models/schemas.py     Party, Citation, CitedFact, CaseUnderstanding, Issue, Argument, StressTestPoint, OutlinePoint, ChecklistItem, HearingPrep, Authority, IssueResearch, CaseAnalysis (Pydantic)
     llm/client.py          get_client() / complete_json(system_prompt, user_prompt, model) — OpenRouter (OpenAI SDK) wrapper; retries once, raises LLMError on failure
@@ -69,23 +69,29 @@ backend/
     arguments/generator.py    generate_arguments(understanding, issues, model) -> list[Argument] (supporting facts selected by validated fact number; carries counter_argument + rebuttal)
     stresstest/tester.py       stress_test(understanding, issues, arguments, adverse_research, model) -> list[StressTestPoint] (adverse authorities attached by validated number)
     prepare/assembler.py       assemble_hearing_prep(understanding, issues, arguments, stress_test, model) -> HearingPrep
-    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users + sessions tables, init_db() called at startup
+    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users + sessions + cases tables, init_db() called at startup
     auth/security.py           pbkdf2_sha256 password hashing + session-token generation (stdlib only, no extra deps)
     auth/routes.py             POST /api/auth/signup | /login | /logout, GET /api/auth/me; get_current_user dependency (Bearer token) — /api/analyze requires it
+    cases/store.py             save_case/list_cases/get_case/delete_case over the `cases` table (all scoped by user_id) + build_title() (parties → filenames fallback)
+    cases/routes.py            GET /api/cases | GET /api/cases/{id} | GET /api/cases/{id}/export.docx | DELETE /api/cases/{id} — case history for the logged-in user
+    export/docx_builder.py     build_hearing_pack(title, analysis) -> .docx bytes (python-docx, in memory) + export_filename() slug
 
 frontend/
   package.json, vite.config.ts, tsconfig.json, index.html
   src/
     main.tsx              entry point, wraps App in BrowserRouter, imports index.css
     index.css             premium dark/gold theme — cards, modal, hero/landing sections, buttons, alert
-    App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage (wrapped in RequireAuth); all inside AuthProvider
+    App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage, "/cases" -> CasesPage, "/cases/:caseId" -> CaseDetailPage (last three wrapped in RequireAuth); all inside AuthProvider
     api/client.ts          analyzeCaseFiles(files, onStage?) — POSTs files to /api/analyze, reads the NDJSON stream, fires onStage per progress event, returns the final analysis; clears session on 401
     api/auth.ts            signup/login/logout/validateSession + localStorage session helpers
+    api/cases.ts           listCases/getCase/deleteCase/downloadCaseExport against /api/cases (Bearer + 401 handling) + formatSavedAt() for the UTC timestamps
     auth/AuthContext.tsx   AuthProvider + useAuth() — session state, validates stored token via /auth/me on load
     auth/RequireAuth.tsx   route guard — redirects to /login (preserving intended destination) when not authenticated
     types/index.ts         TS mirrors of the backend Pydantic schemas
     components/
       Card.tsx              clickable preview card (icon, title, preview text) used on the results grid
+      AnalysisResult.tsx     the six result cards + their modals for one CaseAnalysis — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case)
+      AppHeader.tsx          logged-in header: logo, Analyze / Case history nav, email, sign out
       AiDisclaimer.tsx       "AI-generated, verify before use" banner — results grid, Arguments/StressTest modals, and prepended to the Prepare text export
       Citations.tsx          renders a CitedFact's citations as (document, page/paragraph) badge chips
       Logo.tsx               site logo used in headers
@@ -93,14 +99,16 @@ frontend/
     pages/
       LandingPage.tsx        marketing page at "/" — nav, hero, "How it works" steps, deliverables, feature grid, FAQ, CTA band, footer
       AuthPage.tsx           login/signup form (mode prop), used at /login and /signup
-      AnalyzePage.tsx        state machine (idle/loading/error/done), owns the API call; on done, renders the result-section card grid and opens each section's page component in a Modal
+      AnalyzePage.tsx        state machine (idle/loading/error/done), owns the API call; on done, renders <AnalysisResult>
+      CasesPage.tsx          saved case list (newest first) with open + inline-confirm delete; empty/loading/error states
+      CaseDetailPage.tsx     loads one saved case by id and renders <AnalysisResult>
       UploadPage.tsx        multi-file picker; during analysis shows the live stage-progress checklist (pending ○ / running … / done ✓)
       UnderstandingPage.tsx  renders CaseUnderstanding (also used standalone, inside AnalyzePage's modal)
       IssuesPage.tsx         renders list[Issue] (inside modal)
       ArgumentsPage.tsx      renders list[Argument] (inside modal)
       StressTestPage.tsx     renders list[StressTestPoint] (inside modal)
       ResearchPage.tsx       renders list[IssueResearch] — authorities per issue with Indian Kanoon links (inside modal)
-      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + client-side "Export as text" download (inside modal)
+      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + "Export as Word (.docx)" (fetches the backend export as a blob — needs the Bearer header, so it can't be a plain link) and the client-side "Export as text" download (inside modal)
 ```
 
 ## Status
@@ -128,7 +136,8 @@ npm run dev
 Known-good model note: DeepSeek V4 Flash did not reliably follow the JSON-mode schema instructions during testing (returned malformed JSON). Currently using a Mistral model for `MID` (Understand) and `openai/gpt-4o` for `STRONG` (Generate Arguments) — both work well. Pick models with solid JSON-mode support.
 
 Tests: `backend/tests/` (pytest, `uv run pytest`) covers the analyze route's graceful
-degradation, the research rerank index-validation, and citation resolution in the
+degradation, case-history persistence and per-user scoping, the DOCX export, the research
+rerank index-validation, and citation resolution in the
 extractor/generator. LLM calls are monkeypatched — the suite runs in under a second with
 no network or API key.
 

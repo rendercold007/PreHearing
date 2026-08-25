@@ -1,5 +1,6 @@
 import pytest
 
+from app.auth import db
 from app.config import get_settings
 
 
@@ -13,3 +14,28 @@ def fake_settings(monkeypatch):
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def temp_db(tmp_path, monkeypatch):
+    """Every test gets its own SQLite file — never the developer's prehearing.db."""
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
+    db.init_db()
+
+
+def _create_user(email: str) -> int:
+    with db.get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES (?, 'x')", (email,)
+        )
+    return cursor.lastrowid
+
+
+@pytest.fixture
+def user_id() -> int:
+    return _create_user("test@example.com")
+
+
+@pytest.fixture
+def other_user_id() -> int:
+    return _create_user("other@example.com")

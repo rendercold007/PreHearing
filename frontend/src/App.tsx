@@ -1,6 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import { LandingPage } from "./pages/LandingPage";
 import { AnalyzePage } from "./pages/AnalyzePage";
+import { CasesPage } from "./pages/CasesPage";
+import { CaseDetailPage } from "./pages/CaseDetailPage";
 import { AuthPage } from "./pages/AuthPage";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
@@ -17,6 +19,22 @@ function App(){
                     element={
                         <RequireAuth>
                             <AnalyzePage />
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/cases"
+                    element={
+                        <RequireAuth>
+                            <CasesPage />
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/cases/:caseId"
+                    element={
+                        <RequireAuth>
+                            <CaseDetailPage />
                         </RequireAuth>
                     }
                 />

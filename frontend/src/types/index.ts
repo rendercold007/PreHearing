@@ -85,3 +85,15 @@ export interface IssueResearch{
     queries: string[];
     authorities: Authority[];
 }
+
+export interface CaseSummary {
+    id: number;
+    title: string;
+    filenames: string[];
+    warning_count: number;
+    created_at: string;
+}
+
+export interface CaseDetail extends CaseSummary {
+    analysis: CaseAnalysis;
+}

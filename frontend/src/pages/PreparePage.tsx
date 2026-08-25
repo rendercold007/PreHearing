@@ -1,7 +1,10 @@
+import { useState } from "react";
+import { downloadCaseExport } from "../api/cases";
 import type { HearingPrep } from "../types";
 
 interface PreparePageProps {
   hearingPrep: HearingPrep;
+  caseId: number | null;
 }
 
 function buildExportText(hearingPrep: HearingPrep): string {
@@ -40,11 +43,41 @@ function handleExport(hearingPrep: HearingPrep) {
   URL.revokeObjectURL(url);
 }
 
-export function PreparePage({ hearingPrep }: PreparePageProps) {
+export function PreparePage({ hearingPrep, caseId }: PreparePageProps) {
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function handleDocxExport(id: number) {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadCaseExport(id);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "The export could not be downloaded.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <section>
       <h2>Prepare</h2>
-      <button onClick={() => handleExport(hearingPrep)}>Export as text</button>
+      <div className="export-actions">
+        {caseId !== null && (
+          <button type="button" onClick={() => handleDocxExport(caseId)} disabled={exporting}>
+            {exporting ? "Preparing…" : "Export as Word (.docx)"}
+          </button>
+        )}
+        <button type="button" onClick={() => handleExport(hearingPrep)}>
+          Export as text
+        </button>
+      </div>
+      {caseId === null && (
+        <p className="export-note">
+          This run was not saved to your case history, so the Word export is unavailable.
+        </p>
+      )}
+      {exportError && <p role="alert">{exportError}</p>}
 
       <h3>Hearing Brief</h3>
       <p>{hearingPrep.brief}</p>

@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.api import routes
 from app.auth.routes import CurrentUser, get_current_user
+from app.cases.store import get_case, list_cases
 from app.ingest.parser import DocumentChunk
 from app.models.schemas import (
     Argument,
@@ -25,11 +26,11 @@ PREP = HearingPrep(brief="Brief", outline=[], checklist=[])
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, user_id):
     app = FastAPI()
     app.include_router(routes.router, prefix="/api")
     app.dependency_overrides[get_current_user] = lambda: CurrentUser(
-        id=1, email="test@example.com", token="tok"
+        id=user_id, email="test@example.com", token="tok"
     )
 
     monkeypatch.setattr(
@@ -78,6 +79,28 @@ def test_full_success_streams_stages_then_result(client):
     analysis = events[-1]["analysis"]
     assert analysis["warnings"] == []
     assert analysis["hearing_prep"]["brief"] == "Brief"
+
+
+def test_successful_run_is_saved_to_case_history(client, user_id):
+    response = post_file(client)
+    case_id = [e for e in events_of(response) if e["type"] == "result"][0]["case_id"]
+
+    saved = list_cases(user_id)
+    assert [row["id"] for row in saved] == [case_id]
+    assert saved[0]["filenames"] == ["case.pdf"]
+    assert get_case(user_id, case_id)["analysis"].understanding.summary == "A case."
+
+
+def test_save_failure_warns_instead_of_losing_the_analysis(client, monkeypatch):
+    def boom(user_id, analysis, filenames):
+        raise RuntimeError("disk on fire")
+
+    monkeypatch.setattr(routes, "save_case", boom)
+    response = post_file(client)
+    analysis = result_of(response)
+
+    assert analysis["hearing_prep"]["brief"] == "Brief"  # the run itself survives
+    assert "case history" in analysis["warnings"][0]
 
 
 def test_failed_stage_degrades_instead_of_500(client, monkeypatch):

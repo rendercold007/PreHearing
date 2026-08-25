@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from app.arguments.generator import generate_arguments
 from app.auth.routes import CurrentUser, get_current_user
+from app.cases.store import save_case
 from app.config import get_settings
 from app.ingest.parser import UnsupportedFileType, parse_documents
 from app.issues.identifier import identify_issues
@@ -32,6 +33,7 @@ async def analyze_case(
     user: CurrentUser = Depends(get_current_user),
 ) -> StreamingResponse:
     raw_files = [(f.filename, await f.read()) for f in files]
+    filenames = [name for name, _ in raw_files if name]
 
     try:
         chunks = await run_in_threadpool(parse_documents, raw_files)
@@ -139,6 +141,20 @@ async def analyze_case(
             research=research,
             warnings=warnings,
         )
-        yield _event({"type": "result", "analysis": analysis.model_dump()})
+
+        # Saved to case history so the user can revisit this run later. A failure here
+        # must not cost them the analysis they just waited for.
+        try:
+            case_id = await run_in_threadpool(save_case, user.id, analysis, filenames)
+        except Exception:
+            logger.exception("Saving the case failed")
+            case_id = None
+            analysis.warnings.append(
+                "This analysis could not be saved to your case history."
+            )
+
+        yield _event(
+            {"type": "result", "analysis": analysis.model_dump(), "case_id": case_id}
+        )
 
     return StreamingResponse(stream(), media_type="application/x-ndjson")

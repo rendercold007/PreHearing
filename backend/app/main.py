@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.auth.db import init_db
 from app.auth.routes import router as auth_router
+from app.cases.routes import router as cases_router
 
 app = FastAPI(title="PreHearing")
 
@@ -18,3 +19,4 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(cases_router, prefix="/api")
