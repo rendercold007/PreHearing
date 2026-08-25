@@ -108,5 +108,27 @@ def test_delete_removes_the_case(client_for, user_id):
     assert client.get("/api/cases").json() == []
 
 
+def test_case_saved_before_adverse_research_existed_still_loads(client_for, user_id):
+    """Cases stored as JSON blobs predate the adverse_research field. The model default
+    has to fill it in, and the response has to carry the key so the frontend can rely
+    on it without a guard."""
+    import json
+
+    from app.auth import db
+
+    analysis_json = json.loads(make_analysis().model_dump_json())
+    del analysis_json["adverse_research"]
+    with db.get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO cases (user_id, title, filenames, warning_count, analysis) "
+            "VALUES (?, 'Old case', '[\"case.pdf\"]', 0, ?)",
+            (user_id, json.dumps(analysis_json)),
+        )
+        case_id = cursor.lastrowid
+
+    body = client_for(user_id).get(f"/api/cases/{case_id}").json()
+    assert body["analysis"]["adverse_research"] == []
+
+
 def test_missing_case_is_404(client_for, user_id):
     assert client_for(user_id).get("/api/cases/999").status_code == 404

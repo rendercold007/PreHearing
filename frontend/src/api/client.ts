@@ -5,7 +5,8 @@ const API_BASE_URL = "http://localhost:8000/api";
 
 export interface StageEvent {
     stage: string;
-    status: "started" | "done";
+    /** "failed" means the stage crashed and was skipped — the run continues without it. */
+    status: "started" | "done" | "failed";
 }
 
 export interface AnalysisRun {

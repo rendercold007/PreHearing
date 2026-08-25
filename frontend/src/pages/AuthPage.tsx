@@ -14,6 +14,7 @@ export function AuthPage({ mode }: AuthPageProps) {
     const location = useLocation();
     const from = (location.state as { from?: string } | null)?.from ?? "/app";
 
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,6 +25,11 @@ export function AuthPage({ mode }: AuthPageProps) {
         event.preventDefault();
         setError(null);
 
+        if (isSignup && !name.trim()) {
+            setError("Please enter your name.");
+            return;
+        }
+
         if (isSignup && password !== confirmPassword) {
             setError("Passwords do not match.");
             return;
@@ -32,7 +38,7 @@ export function AuthPage({ mode }: AuthPageProps) {
         setSubmitting(true);
         try {
             if (isSignup) {
-                await signup(email, password);
+                await signup(name.trim(), email, password);
             } else {
                 await login(email, password);
             }
@@ -60,6 +66,20 @@ export function AuthPage({ mode }: AuthPageProps) {
                     </p>
 
                     <form className="auth-form" onSubmit={handleSubmit}>
+                        {isSignup && (
+                            <label className="auth-field">
+                                <span>Full name</span>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    autoComplete="name"
+                                    maxLength={80}
+                                    required
+                                />
+                            </label>
+                        )}
+
                         <label className="auth-field">
                             <span>Email</span>
                             <input

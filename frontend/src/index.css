@@ -12,6 +12,8 @@
   --accent-soft: rgba(201, 162, 78, 0.12);
   --danger: #e5626a;
   --danger-bg: rgba(229, 98, 106, 0.12);
+  --warning: #e0913c;
+  --warning-bg: rgba(224, 145, 60, 0.12);
   --radius: 14px;
   --shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
 }
@@ -739,6 +741,50 @@ em {
   margin: 0;
 }
 
+/* Segmented control — the supporting/opposing switch inside the Research modal. */
+.segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.segmented-option {
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.segmented-option:hover {
+  color: var(--text);
+}
+
+.segmented-option.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.segmented-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.segmented-hint {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 .modal-close {
   position: absolute;
   top: 1rem;
@@ -811,6 +857,26 @@ em {
   font-size: 0.85rem;
 }
 
+.alert {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(224, 145, 60, 0.4);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--warning-bg);
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.alert p {
+  margin: 0.2rem 0;
+}
+
+.alert-title {
+  color: var(--warning);
+  font-weight: 600;
+}
+
 .stage-progress {
   list-style: none;
   margin: 1.25rem 0 0;
@@ -848,6 +914,19 @@ em {
 
 .stage-progress .stage-done .stage-marker {
   color: var(--accent);
+}
+
+.stage-progress .stage-failed {
+  color: var(--text);
+}
+
+.stage-progress .stage-failed .stage-marker {
+  color: var(--danger);
+}
+
+.stage-progress .stage-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 
 .page-title {
@@ -1102,6 +1181,12 @@ em {
   display: block;
 }
 
+.dropzone-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .dropzone {
   display: flex;
   flex-direction: column;
@@ -1292,6 +1377,12 @@ em {
   border-radius: var(--radius);
 }
 
+.result-summary {
+  min-width: 0;
+  flex: 1 1 20rem;
+  overflow-wrap: break-word;
+}
+
 .result-case-type {
   margin: 0;
   font-size: 1.25rem;
@@ -1445,6 +1536,12 @@ em {
 .sidebar-link.active {
   color: var(--accent);
   background: var(--accent-soft);
+}
+
+.sidebar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-icon {

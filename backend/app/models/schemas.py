@@ -84,4 +84,7 @@ class CaseAnalysis(BaseModel):
     stress_test: list[StressTestPoint]
     hearing_prep: HearingPrep | None = None
     research: list[IssueResearch] = []
+    # The adverse pass feeds the stress test; it is also surfaced on its own so the
+    # user can read the authorities the other side would rely on.
+    adverse_research: list[IssueResearch] = []
     warnings: list[str] = []

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { downloadCaseExport } from "../api/cases";
-import type { CaseAnalysis } from "../types";
+import type { CaseAnalysis, IssueResearch } from "../types";
 import { UnderstandingPage } from "../pages/UnderstandingPage";
 import { IssuesPage } from "../pages/IssuesPage";
 import { ResearchPage } from "../pages/ResearchPage";
@@ -14,9 +14,25 @@ import { AiDisclaimer } from "./AiDisclaimer";
 
 type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
 
+/** Stage 04 runs twice — once for our authorities, once flipped to the opponent's. */
+type ResearchPass = "supporting" | "adverse";
+
 function truncate(text: string, max: number): string {
     const trimmed = text.trim();
     return trimmed.length > max ? `${trimmed.slice(0, max).trim()}…` : trimmed;
+}
+
+function countAuthorities(research: IssueResearch[]): number {
+    return research.reduce((total, item) => total + item.authorities.length, 0);
+}
+
+function researchPreview(analysis: CaseAnalysis): string {
+    const supporting = countAuthorities(analysis.research);
+    const opposing = countAuthorities(analysis.adverse_research);
+    if (supporting === 0 && opposing === 0) return "No research results.";
+
+    const issueCount = Math.max(analysis.research.length, analysis.adverse_research.length);
+    return `${supporting} supporting and ${opposing} opposing authorities across ${issueCount} issue${issueCount === 1 ? "" : "s"}.`;
 }
 
 function buildSections(analysis: CaseAnalysis) {
@@ -36,14 +52,11 @@ function buildSections(analysis: CaseAnalysis) {
                     ? "No issues were identified."
                     : `${analysis.issues.length} issue${analysis.issues.length === 1 ? "" : "s"} identified — leading with "${truncate(analysis.issues[0].statement, 80)}"`,
         },
-         {
+        {
             key: "research" as const,
             icon: "📚",
             title: "Research",
-            preview:
-                analysis.research.length === 0
-                    ? "No research results."
-                    : `${analysis.research.reduce((n, r) => n + r.authorities.length, 0)} authorities found across ${analysis.research.length} issue${analysis.research.length === 1 ? "" : "s"}.`,
+            preview: researchPreview(analysis),
         },
         {
             key: "arguments" as const,
@@ -83,6 +96,7 @@ interface AnalysisResultProps {
 
 export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisResultProps) {
     const [openSection, setOpenSection] = useState<SectionKey | null>(null);
+    const [researchPass, setResearchPass] = useState<ResearchPass>("supporting");
     const [exporting, setExporting] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
 
@@ -141,12 +155,22 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                 </div>
             </div>
 
-            {exportError && <p role="alert">{exportError}</p>}
+            {exportError && (
+                <div className="alert" role="alert">
+                    <p className="alert-title">Export failed</p>
+                    <p>{exportError}</p>
+                </div>
+            )}
 
             {analysis.warnings.length > 0 && (
                 <div className="alert" role="alert">
-                    {analysis.warnings.map((w) => (
-                        <p key={w}>{w}</p>
+                    <p className="alert-title">
+                        {analysis.warnings.length === 1
+                            ? "One stage did not complete"
+                            : `${analysis.warnings.length} stages did not complete`}
+                    </p>
+                    {analysis.warnings.map((w, index) => (
+                        <p key={`${index}:${w}`}>{w}</p>
                     ))}
                 </div>
             )}
@@ -181,8 +205,55 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                 </Modal>
             )}
             {openSection === "research" && (
-                <Modal title="Research" onClose={() => setOpenSection(null)}>
-                    <ResearchPage research={analysis.research} />
+                <Modal
+                    title="Research"
+                    onClose={() => {
+                        setOpenSection(null);
+                        setResearchPass("supporting");
+                    }}
+                >
+                    <div className="segmented" role="tablist" aria-label="Research pass">
+                        <button
+                            type="button"
+                            role="tab"
+                            id="research-tab-supporting"
+                            aria-selected={researchPass === "supporting"}
+                            aria-controls="research-panel"
+                            className={`segmented-option${researchPass === "supporting" ? " active" : ""}`}
+                            onClick={() => setResearchPass("supporting")}
+                        >
+                            Supporting ({countAuthorities(analysis.research)})
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            id="research-tab-adverse"
+                            aria-selected={researchPass === "adverse"}
+                            aria-controls="research-panel"
+                            className={`segmented-option${researchPass === "adverse" ? " active" : ""}`}
+                            onClick={() => setResearchPass("adverse")}
+                        >
+                            Opposing ({countAuthorities(analysis.adverse_research)})
+                        </button>
+                    </div>
+                    <p className="segmented-hint">
+                        {researchPass === "supporting"
+                            ? "Authorities that support the case as pleaded."
+                            : "Authorities the other side would rely on — these feed the stress test."}
+                    </p>
+                    <div
+                        id="research-panel"
+                        role="tabpanel"
+                        aria-labelledby={`research-tab-${researchPass}`}
+                    >
+                        <ResearchPage
+                            research={
+                                researchPass === "supporting"
+                                    ? analysis.research
+                                    : analysis.adverse_research
+                            }
+                        />
+                    </div>
                 </Modal>
             )}
             {openSection === "arguments" && (

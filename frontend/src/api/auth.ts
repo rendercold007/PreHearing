@@ -19,16 +19,25 @@ export function storeSession(session: AuthSession): void {
     localStorage.setItem(EMAIL_KEY, session.email);
 }
 
+/** Fired after the session is cleared, so AuthContext can drop its in-memory state.
+ *  Without this an API layer 401 empties localStorage while the app still believes
+ *  it is logged in, and RequireAuth never redirects. */
+export const SESSION_CLEARED_EVENT = "prehearing:session-cleared";
+
 export function clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    window.dispatchEvent(new Event(SESSION_CLEARED_EVENT));
 }
 
-async function authRequest(path: string, email: string, password: string): Promise<AuthSession> {
+async function authRequest(
+    path: string,
+    body: Record<string, string>,
+): Promise<AuthSession> {
     const response = await fetch(`${API_BASE_URL}/auth/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -46,12 +55,16 @@ async function authRequest(path: string, email: string, password: string): Promi
     return response.json();
 }
 
-export function signup(email: string, password: string): Promise<AuthSession> {
-    return authRequest("signup", email, password);
+export function signup(
+    name: string,
+    email: string,
+    password: string,
+): Promise<AuthSession> {
+    return authRequest("signup", { name, email, password });
 }
 
 export function login(email: string, password: string): Promise<AuthSession> {
-    return authRequest("login", email, password);
+    return authRequest("login", { email, password });
 }
 
 export interface AccountProfile {

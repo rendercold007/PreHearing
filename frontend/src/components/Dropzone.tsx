@@ -3,6 +3,14 @@ import type { DragEvent } from "react";
 
 const ACCEPTED = [".pdf", ".docx"];
 
+// Mirrors the backend defaults (MAX_FILES / MAX_FILE_MB / MAX_TOTAL_MB in Settings).
+// Catching this here means the user finds out in the picker instead of after waiting
+// out an upload that the server will reject with a 413.
+const MAX_FILES = 20;
+const MAX_FILE_MB = 25;
+const MAX_TOTAL_MB = 60;
+const MB = 1024 * 1024;
+
 interface DropzoneProps {
   files: File[];
   onFilesChange: (files: File[]) => void;
@@ -29,10 +37,36 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState<string[]>([]);
+  const [limitError, setLimitError] = useState<string | null>(null);
 
   function add(incoming: File[]) {
     setRejected(incoming.filter((file) => !isAccepted(file)).map((file) => file.name));
-    onFilesChange(merge(files, incoming.filter(isAccepted)));
+
+    const accepted = incoming.filter(isAccepted);
+    const oversized = accepted.find((file) => file.size > MAX_FILE_MB * MB);
+    if (oversized) {
+      setLimitError(
+        `${oversized.name} is ${formatSize(oversized.size)} — the limit is ${MAX_FILE_MB} MB per file.`,
+      );
+      return;
+    }
+
+    const next = merge(files, accepted);
+    if (next.length > MAX_FILES) {
+      setLimitError(`You can analyze up to ${MAX_FILES} files at once.`);
+      return;
+    }
+
+    const total = next.reduce((bytes, file) => bytes + file.size, 0);
+    if (total > MAX_TOTAL_MB * MB) {
+      setLimitError(
+        `Those files total ${formatSize(total)} — the limit is ${MAX_TOTAL_MB} MB per analysis.`,
+      );
+      return;
+    }
+
+    setLimitError(null);
+    onFilesChange(next);
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
@@ -93,6 +127,12 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
         </p>
       )}
 
+      {limitError && (
+        <p className="dropzone-rejected" role="alert">
+          {limitError}
+        </p>
+      )}
+
       {files.length > 0 && (
         <ul className="file-list">
           {files.map((file) => (
@@ -104,7 +144,10 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
                   type="button"
                   className="file-remove"
                   aria-label={`Remove ${file.name}`}
-                  onClick={() => onFilesChange(files.filter((item) => item !== file))}
+                  onClick={() => {
+                    setLimitError(null);
+                    onFilesChange(files.filter((item) => item !== file));
+                  }}
                 >
                   ×
                 </button>

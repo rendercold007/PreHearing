@@ -15,16 +15,38 @@ def client() -> TestClient:
 @pytest.fixture
 def auth_headers(client) -> dict:
     response = client.post(
-        "/api/auth/signup", json={"email": "lawyer@example.com", "password": "password123"}
+        "/api/auth/signup",
+        json={
+            "name": "Aditi Rao",
+            "email": "lawyer@example.com",
+            "password": "password123",
+        },
     )
     return {"Authorization": f"Bearer {response.json()['token']}"}
 
 
-def test_new_account_has_no_name_yet(client, auth_headers):
+def test_new_account_keeps_the_name_given_at_signup(client, auth_headers):
     body = client.get("/api/auth/me", headers=auth_headers).json()
     assert body["email"] == "lawyer@example.com"
-    assert body["name"] == ""
+    assert body["name"] == "Aditi Rao"
     assert body["created_at"]
+
+
+@pytest.mark.parametrize("name", [None, "", "   "])
+def test_signup_requires_a_name(client, name):
+    payload = {"email": "new@example.com", "password": "password123"}
+    if name is not None:
+        payload["name"] = name
+    assert client.post("/api/auth/signup", json=payload).status_code == 422
+
+
+def test_signup_trims_the_name(client):
+    response = client.post(
+        "/api/auth/signup",
+        json={"name": "  Vikram Shah  ", "email": "vs@example.com", "password": "password123"},
+    )
+    headers = {"Authorization": f"Bearer {response.json()['token']}"}
+    assert client.get("/api/auth/me", headers=headers).json()["name"] == "Vikram Shah"
 
 
 def test_name_can_be_set_and_is_returned_afterwards(client, auth_headers):
@@ -44,6 +66,28 @@ def test_name_can_be_cleared(client, auth_headers):
 def test_absurdly_long_name_is_rejected(client, auth_headers):
     response = client.patch("/api/auth/me", json={"name": "x" * 81}, headers=auth_headers)
     assert response.status_code == 422
+
+
+def test_expired_session_is_rejected_and_deleted(client, auth_headers):
+    """The 401 is the visible half. The delete is the half that silently regressed:
+    sqlite3's context manager rolls back when the block raises, so an uncommitted
+    delete followed by `raise HTTPException` never actually removes the row."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.auth import db
+
+    token = auth_headers["Authorization"].removeprefix("Bearer ")
+    past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    with db.get_connection() as conn:
+        conn.execute("UPDATE sessions SET expires_at = ? WHERE token = ?", (past, token))
+
+    assert client.get("/api/auth/me", headers=auth_headers).status_code == 401
+
+    with db.get_connection() as conn:
+        remaining = conn.execute(
+            "SELECT count(*) FROM sessions WHERE token = ?", (token,)
+        ).fetchone()[0]
+    assert remaining == 0, "expired session row was not cleaned up"
 
 
 def test_profile_requires_authentication(client):

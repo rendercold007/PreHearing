@@ -1,14 +1,41 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes import router
 from app.auth.db import init_db
 from app.auth.routes import router as auth_router
 from app.cases.routes import router as cases_router
+from app.config import get_settings
 
 app = FastAPI(title="PreHearing")
 
 init_db()
+
+
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    """Reject an oversized upload before the body is read.
+
+    The per-file checks in the analyze route run after FastAPI has already parsed the
+    multipart body — by then Starlette has spooled anything over 1 MB to a temp file.
+    This is the only place that can turn the bytes away at the door.
+    """
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit():
+        settings = get_settings()
+        if int(content_length) > settings.max_total_bytes:
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "detail": (
+                        f"Upload is too large — the limit is "
+                        f"{settings.max_total_mb:g} MB per analysis."
+                    )
+                },
+            )
+    return await call_next(request)
+
 
 app.add_middleware(
     CORSMiddleware,

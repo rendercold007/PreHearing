@@ -16,6 +16,36 @@ class Settings(BaseSettings):
     indiankanoon_api_token: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
+    # Upload guardrails. Without these a single request can read an unbounded number
+    # of bytes into memory before anything else runs.
+    max_files: int = 20
+    max_file_mb: float = 25
+    max_total_mb: float = 60
+
+    # How much document text one analysis may send to the extractor. The whole chunk
+    # listing goes into a single prompt, so this is the real ceiling on a run.
+    max_prompt_chars: int = 240_000
+
+    # LLM call limits. The SDK defaults to a 600s timeout and its own retries, which
+    # multiply with complete_json's — a single stage could hang for the best part of
+    # an hour.
+    llm_timeout_seconds: float = 120
+    llm_max_tokens: int = 8000
+
+    # Requests allowed per window, per client. Auth is keyed by IP, analysis by user.
+    auth_rate_limit: int = 10
+    auth_rate_window_seconds: int = 60
+    analyze_rate_limit: int = 5
+    analyze_rate_window_seconds: int = 3600
+
+    @property
+    def max_file_bytes(self) -> int:
+        return int(self.max_file_mb * 1024 * 1024)
+
+    @property
+    def max_total_bytes(self) -> int:
+        return int(self.max_total_mb * 1024 * 1024)
+
     def model_for_tier(self, tier: Tier) -> str:
         return {
             "cheap": self.openrouter_model_cheap,

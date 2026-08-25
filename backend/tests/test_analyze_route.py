@@ -13,6 +13,7 @@ from app.models.schemas import (
     CaseUnderstanding,
     HearingPrep,
     Issue,
+    IssueResearch,
     StressTestPoint,
 )
 
@@ -23,6 +24,10 @@ ISSUES = [Issue(statement="An issue", issue_type="legal")]
 ARGUMENTS = [Argument(point="A point")]
 STRESS = [StressTestPoint(category="weakness", point="A weakness")]
 PREP = HearingPrep(brief="Brief", outline=[], checklist=[])
+RESEARCH = [IssueResearch(issue_statement="An issue", queries=["q"], authorities=[])]
+ADVERSE_RESEARCH = [
+    IssueResearch(issue_statement="An issue", queries=["opposing q"], authorities=[])
+]
 
 
 @pytest.fixture
@@ -43,7 +48,11 @@ def client(monkeypatch, user_id):
     monkeypatch.setattr(routes, "generate_arguments", lambda u, i, r, model: ARGUMENTS)
     monkeypatch.setattr(routes, "stress_test", lambda u, i, a, r, model: STRESS)
     monkeypatch.setattr(routes, "assemble_hearing_prep", lambda u, i, a, s, model: PREP)
-    monkeypatch.setattr(routes, "research_issues", lambda i, model, adverse=False: [])
+    monkeypatch.setattr(
+        routes,
+        "research_issues",
+        lambda i, model, adverse=False: ADVERSE_RESEARCH if adverse else RESEARCH,
+    )
 
     return TestClient(app)
 
@@ -81,6 +90,14 @@ def test_full_success_streams_stages_then_result(client):
     assert analysis["hearing_prep"]["brief"] == "Brief"
 
 
+def test_both_research_passes_reach_the_result(client):
+    """The adverse pass runs and streams progress; it also has to be readable —
+    it used to exist only inside the stress-test prompt."""
+    analysis = result_of(post_file(client))
+    assert analysis["research"][0]["queries"] == ["q"]
+    assert analysis["adverse_research"][0]["queries"] == ["opposing q"]
+
+
 def test_successful_run_is_saved_to_case_history(client, user_id):
     response = post_file(client)
     case_id = [e for e in events_of(response) if e["type"] == "result"][0]["case_id"]
@@ -116,6 +133,33 @@ def test_failed_stage_degrades_instead_of_500(client, monkeypatch):
     assert "Stress Test" in analysis["warnings"][0]
     assert analysis["arguments"] != []  # other stages unaffected
     assert analysis["hearing_prep"] is not None
+
+
+def test_failed_stage_streams_failed_not_done(client, monkeypatch):
+    """A crashed stage must not be reported with the same status as a successful one —
+    the checklist draws "done" as a green tick."""
+
+    def boom(u, i, a, r, model):
+        raise RuntimeError("model returned garbage")
+
+    monkeypatch.setattr(routes, "stress_test", boom)
+    events = events_of(post_file(client))
+    statuses = {
+        (e["stage"], e["status"]) for e in events if e["type"] == "stage"
+    }
+
+    assert ("stress_test", "failed") in statuses
+    assert ("stress_test", "done") not in statuses
+    # every other stage is unaffected
+    assert ("arguments", "done") in statuses
+    assert ("prepare", "done") in statuses
+    assert not any(status == "failed" for stage, status in statuses if stage != "stress_test")
+
+
+def test_successful_run_reports_every_stage_done(client):
+    events = events_of(post_file(client))
+    finished = {e["stage"]: e["status"] for e in events if e["type"] == "stage"}
+    assert set(finished.values()) == {"done"}
 
 
 def test_failed_prep_returns_null(client, monkeypatch):

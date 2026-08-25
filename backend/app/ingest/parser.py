@@ -29,6 +29,28 @@ def parse_documents(files: list[tuple[str, bytes]]) -> list[DocumentChunk]:
         all_chunks.extend(_parse_file(filename,content))
     return _dedupe(all_chunks)
 
+def budget_chunks(
+    chunks: list[DocumentChunk], max_chars: int
+) -> tuple[list[DocumentChunk], int]:
+    """Trim the chunk list to what one extractor prompt can carry.
+
+    The whole listing goes into a single LLM call, so an oversized case file would
+    otherwise be rejected by the provider and surface as a generic stage failure.
+    Returns the chunks that fit and how many were dropped, so the caller can tell
+    the user their document was truncated rather than silently analysing part of it.
+    """
+    kept: list[DocumentChunk] = []
+    used = 0
+    for index, chunk in enumerate(chunks):
+        # Mirrors the per-chunk framing extract_understanding adds around the text.
+        cost = len(chunk.text) + len(chunk.source_document) + len(chunk.location) + 16
+        if kept and used + cost > max_chars:
+            return kept, len(chunks) - index
+        used += cost
+        kept.append(chunk)
+    return kept, 0
+
+
 def _dedupe(chunks: list[DocumentChunk]) -> list[DocumentChunk]:
     seen_hashes: set[str] = set()
     deduped: list[DocumentChunk] = []
@@ -82,7 +104,7 @@ def _extract_pdf_ocr_chunks(filename: str, content: bytes) -> list[DocumentChunk
             chunks.append(
                 DocumentChunk(
                     source_document=filename,
-                    location=f"page{page_number}",
+                    location=f"page {page_number}",
                     text=page_text,
                 )
             )

@@ -2,12 +2,14 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, field_validator
 
 from app.auth.db import get_connection
+from app.auth.ratelimit import check_rate_limit, client_key
 from app.auth.security import hash_password, new_session_token, verify_password
+from app.config import get_settings
 
 SESSION_LIFETIME = timedelta(days=7)
 
@@ -26,6 +28,18 @@ class Credentials(BaseModel):
         value = value.strip().lower()
         if "@" not in value or "." not in value.split("@")[-1]:
             raise ValueError("Enter a valid email address.")
+        return value
+
+
+class SignupCredentials(Credentials):
+    name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Enter your name.")
         return value
 
 
@@ -56,6 +70,15 @@ class CurrentUser:
     token: str
     created_at: str = ""
     name: str = ""
+
+
+def _throttle_auth(request: Request, action: str) -> None:
+    settings = get_settings()
+    check_rate_limit(
+        client_key(request, action),
+        settings.auth_rate_limit,
+        settings.auth_rate_window_seconds,
+    )
 
 
 def _create_session(conn: sqlite3.Connection, user_id: int) -> str:
@@ -89,6 +112,9 @@ def get_current_user(
 
         if datetime.fromisoformat(row["expires_at"]) < datetime.now(timezone.utc):
             conn.execute("DELETE FROM sessions WHERE token = ?", (credentials.credentials,))
+            # sqlite3's context manager rolls back when the block exits via an exception,
+            # so the delete has to be committed before raising or it never happens.
+            conn.commit()
             raise HTTPException(status_code=401, detail="Invalid or expired session.")
 
     return CurrentUser(
@@ -101,12 +127,13 @@ def get_current_user(
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=201)
-def signup(credentials: Credentials) -> AuthResponse:
+def signup(credentials: SignupCredentials, request: Request) -> AuthResponse:
+    _throttle_auth(request, "signup")
     with get_connection() as conn:
         try:
             cursor = conn.execute(
-                "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-                (credentials.email, hash_password(credentials.password)),
+                "INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)",
+                (credentials.email, hash_password(credentials.password), credentials.name),
             )
         except sqlite3.IntegrityError:
             raise HTTPException(
@@ -117,7 +144,10 @@ def signup(credentials: Credentials) -> AuthResponse:
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(credentials: Credentials) -> AuthResponse:
+def login(credentials: Credentials, request: Request) -> AuthResponse:
+    # Verifying a password runs 600k pbkdf2 iterations, so an unthrottled login
+    # endpoint is both a credential-stuffing surface and a CPU-exhaustion one.
+    _throttle_auth(request, "login")
     with get_connection() as conn:
         row = conn.execute(
             "SELECT id, password_hash FROM users WHERE email = ?",

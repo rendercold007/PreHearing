@@ -67,6 +67,8 @@ export interface CaseAnalysis {
     stress_test: StressTestPoint[];
     hearing_prep: HearingPrep | null;
     research: IssueResearch[];
+    /** The opponent's authorities — the flipped research pass that feeds the stress test. */
+    adverse_research: IssueResearch[];
     warnings: string[];
 }
 

@@ -1,5 +1,6 @@
 import {useState} from "react";
 import {analyzeCaseFiles} from "../api/client";
+import type {StageProgress} from "./UploadPage";
 import type {CaseAnalysis} from "../types";
 import {UploadPage} from "./UploadPage";
 import { AnalysisResult } from "../components/AnalysisResult";
@@ -12,7 +13,7 @@ export function AnalyzePage(){
     const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
     const [caseId, setCaseId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [progress, setProgress] = useState<Record<string, "running" | "done">>({});
+    const [progress, setProgress] = useState<StageProgress>({});
 
     async function handleFilesSelected(files: File[]){
         setStatus("loading");
@@ -23,7 +24,7 @@ export function AnalyzePage(){
             const result = await analyzeCaseFiles(files, (event) => {
                 setProgress((prev) => ({
                     ...prev,
-                    [event.stage]: event.status === "done" ? "done" : "running",
+                    [event.stage]: event.status === "started" ? "running" : event.status,
                 }));
             });
             setAnalysis(result.analysis);

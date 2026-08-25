@@ -12,10 +12,12 @@ const STAGES: { key: string; label: string }[] = [
     { key: "prepare", label: "Assembling the hearing pack" },
 ];
 
+export type StageProgress = Record<string, "running" | "done" | "failed">;
+
 interface UploadPageProps{
     status: "idle" | "loading" | "error" | "done";
     error: string | null;
-    progress: Record<string, "running" | "done">;
+    progress: StageProgress;
     onFilesSelected: (files: File[]) => void;
 }
 
@@ -29,7 +31,9 @@ export function UploadPage({status, error, progress, onFilesSelected} : UploadPa
     const [elapsed, setElapsed] = useState(0);
 
     const loading = status === "loading";
-    const doneCount = STAGES.filter((stage) => progress[stage.key] === "done").length;
+    const doneCount = STAGES.filter(
+        (stage) => progress[stage.key] === "done" || progress[stage.key] === "failed",
+    ).length;
     const percent = Math.round((doneCount / STAGES.length) * 100);
 
     useEffect(() => {
@@ -100,9 +104,18 @@ export function UploadPage({status, error, progress, onFilesSelected} : UploadPa
                             return (
                                 <li key={stage.key} className={`stage-${state ?? "pending"}`}>
                                     <span className="stage-marker">
-                                        {state === "done" ? "✓" : state === "running" ? "…" : "○"}
+                                        {state === "done"
+                                            ? "✓"
+                                            : state === "failed"
+                                              ? "✕"
+                                              : state === "running"
+                                                ? "…"
+                                                : "○"}
                                     </span>{" "}
                                     {stage.label}
+                                    {state === "failed" && (
+                                        <span className="stage-note"> — skipped</span>
+                                    )}
                                 </li>
                             );
                         })}

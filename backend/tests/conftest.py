@@ -17,6 +17,17 @@ def fake_settings(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def clear_rate_limits():
+    """The limiter's window is process-global, so one test's requests would otherwise
+    count against the next one's allowance."""
+    from app.auth import ratelimit
+
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
+
+
+@pytest.fixture(autouse=True)
 def temp_db(tmp_path, monkeypatch):
     """Every test gets its own SQLite file — never the developer's prehearing.db."""
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")

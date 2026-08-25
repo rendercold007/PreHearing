@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
+    SESSION_CLEARED_EVENT,
     clearSession,
     getStoredSession,
     loadSessionProfile,
@@ -15,7 +16,7 @@ interface AuthContextValue {
     isAuthenticated: boolean;
     checking: boolean;
     login: (email: string, password: string) => Promise<void>;
-    signup: (email: string, password: string) => Promise<void>;
+    signup: (name: string, email: string, password: string) => Promise<void>;
     logout: () => void;
     /** Called after the profile page saves, so the header avatar updates immediately. */
     setName: (name: string) => void;
@@ -44,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .finally(() => setChecking(false));
     }, []);
 
+    // An expired token is discovered by the API layer, which calls clearSession().
+    // Listening here is what turns that into a real logout — otherwise isAuthenticated
+    // stays true and the user is stranded on a page that can no longer load anything.
+    useEffect(() => {
+        function handleSessionCleared() {
+            setEmail(null);
+            setName("");
+        }
+        window.addEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
+        return () => window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
+    }, []);
+
     async function loadName(token: string) {
         try {
             const profile = await loadSessionProfile(token);
@@ -60,11 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await loadName(session.token);
     }
 
-    async function signup(userEmail: string, password: string) {
-        const session = await apiSignup(userEmail, password);
+    async function signup(userName: string, userEmail: string, password: string) {
+        const session = await apiSignup(userName, userEmail, password);
         storeSession(session);
         setEmail(session.email);
-        await loadName(session.token);
+        setName(userName);
     }
 
     function logout() {
