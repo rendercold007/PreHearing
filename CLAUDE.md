@@ -69,9 +69,9 @@ backend/
     arguments/generator.py    generate_arguments(understanding, issues, model) -> list[Argument] (supporting facts selected by validated fact number; carries counter_argument + rebuttal)
     stresstest/tester.py       stress_test(understanding, issues, arguments, adverse_research, model) -> list[StressTestPoint] (adverse authorities attached by validated number)
     prepare/assembler.py       assemble_hearing_prep(understanding, issues, arguments, stress_test, model) -> HearingPrep
-    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users + sessions + cases tables, init_db() called at startup
+    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users (incl. optional display name) + sessions + cases tables, init_db() called at startup — also ALTERs in columns added after a DB was created
     auth/security.py           pbkdf2_sha256 password hashing + session-token generation (stdlib only, no extra deps)
-    auth/routes.py             POST /api/auth/signup | /login | /logout, GET /api/auth/me; get_current_user dependency (Bearer token) — /api/analyze requires it
+    auth/routes.py             POST /api/auth/signup | /login | /logout, GET /api/auth/me (email + name + created_at), PATCH /api/auth/me (display name, trimmed, max 80); get_current_user dependency (Bearer token) — /api/analyze requires it
     cases/store.py             save_case/list_cases/get_case/delete_case over the `cases` table (all scoped by user_id) + build_title() (parties → filenames fallback)
     cases/routes.py            GET /api/cases | GET /api/cases/{id} | GET /api/cases/{id}/export.docx | DELETE /api/cases/{id} — case history for the logged-in user
     export/docx_builder.py     build_hearing_pack(title, analysis) -> .docx bytes (python-docx, in memory) + export_filename() slug
@@ -81,16 +81,20 @@ frontend/
   src/
     main.tsx              entry point, wraps App in BrowserRouter, imports index.css
     index.css             premium dark/gold theme — cards, modal, hero/landing sections, buttons, alert
-    App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage, "/cases" -> CasesPage, "/cases/:caseId" -> CaseDetailPage (last three wrapped in RequireAuth); all inside AuthProvider
+    App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage, "/cases" -> CasesPage, "/cases/:caseId" -> CaseDetailPage, "/profile" -> ProfilePage (last four wrapped in RequireAuth); all inside AuthProvider
     api/client.ts          analyzeCaseFiles(files, onStage?) — POSTs files to /api/analyze, reads the NDJSON stream, fires onStage per progress event, returns the final analysis; clears session on 401
-    api/auth.ts            signup/login/logout/validateSession + localStorage session helpers
+    api/auth.ts            signup/login/logout/fetchProfile/updateName/loadSessionProfile (null on 401) + localStorage session helpers
     api/cases.ts           listCases/getCase/deleteCase/downloadCaseExport against /api/cases (Bearer + 401 handling) + formatSavedAt() for the UTC timestamps
-    auth/AuthContext.tsx   AuthProvider + useAuth() — session state, validates stored token via /auth/me on load
+    auth/AuthContext.tsx   AuthProvider + useAuth() — session state incl. display name, validates the stored token via /auth/me on load; setName keeps the header avatar in sync
     auth/RequireAuth.tsx   route guard — redirects to /login (preserving intended destination) when not authenticated
     types/index.ts         TS mirrors of the backend Pydantic schemas
     components/
       Card.tsx              clickable preview card (icon, title, preview text) used on the results grid
-      AnalysisResult.tsx     the six result cards + their modals for one CaseAnalysis — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case)
+      Dropzone.tsx           drag-and-drop / browse file picker — filters to PDF+DOCX, dedupes by name+size, renders selected files as removable chips
+      AppLayout.tsx          signed-in shell: left sidebar (logo + Analyze / Case history nav with active state) that closes via its × and reopens from the ☰ in the top bar — open/closed remembered in localStorage; top bar also holds the account menu. Wraps every authed page
+      UserMenu.tsx           avatar button + dropdown (email, Profile, Sign out); closes on outside click or Escape
+      Avatar.tsx             initials circle from the display name, falling back to the email (initialsFor())
+      AnalysisResult.tsx     result header (case type, parties, counts, Export as Word / Analyze another / Case history) + the six cards and their modals — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case)
       AppHeader.tsx          logged-in header: logo, Analyze / Case history nav, email, sign out
       AiDisclaimer.tsx       "AI-generated, verify before use" banner — results grid, Arguments/StressTest modals, and prepended to the Prepare text export
       Citations.tsx          renders a CitedFact's citations as (document, page/paragraph) badge chips
@@ -99,16 +103,17 @@ frontend/
     pages/
       LandingPage.tsx        marketing page at "/" — nav, hero, "How it works" steps, sample-argument card, deliverables, feature grid, "How we keep it honest", "What it doesn't do", FAQ, CTA band, footer. Copy must stay true to the built product (it previously claimed no account and no storage)
       AuthPage.tsx           login/signup form (mode prop), used at /login and /signup
+      ProfilePage.tsx        account page at /profile — avatar, editable display name, email, member-since, saved-case count, recent case history (5 newest, link to all), sign out
       AnalyzePage.tsx        state machine (idle/loading/error/done), owns the API call; on done, renders <AnalysisResult>
       CasesPage.tsx          saved case list (newest first) with open + inline-confirm delete; empty/loading/error states
       CaseDetailPage.tsx     loads one saved case by id and renders <AnalysisResult>
-      UploadPage.tsx        multi-file picker; during analysis shows the live stage-progress checklist (pending ○ / running … / done ✓)
+      UploadPage.tsx        "New analysis" screen: Dropzone + submit (blocks an empty submit); during analysis shows a progress bar, elapsed timer, and the live stage checklist (pending ○ / running … / done ✓) with the chosen files still visible
       UnderstandingPage.tsx  renders CaseUnderstanding (also used standalone, inside AnalyzePage's modal)
       IssuesPage.tsx         renders list[Issue] (inside modal)
       ArgumentsPage.tsx      renders list[Argument] (inside modal)
       StressTestPage.tsx     renders list[StressTestPoint] (inside modal)
       ResearchPage.tsx       renders list[IssueResearch] — authorities per issue with Indian Kanoon links (inside modal)
-      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + "Export as Word (.docx)" (fetches the backend export as a blob — needs the Bearer header, so it can't be a plain link) and the client-side "Export as text" download (inside modal)
+      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + the client-side "Export as text" download (inside modal). The Word export lives in AnalysisResult's header, which fetches it as a blob — it needs the Bearer header, so it can't be a plain link
 ```
 
 ## Status

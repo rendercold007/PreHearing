@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { downloadCaseExport } from "../api/cases";
 import type { CaseAnalysis } from "../types";
 import { UnderstandingPage } from "../pages/UnderstandingPage";
 import { IssuesPage } from "../pages/IssuesPage";
@@ -75,13 +77,72 @@ interface AnalysisResultProps {
     analysis: CaseAnalysis;
     /** Saved-case id — enables the Word export, which the backend renders from storage. */
     caseId: number | null;
+    /** Only a fresh run can be reset; a saved case has nothing to reset to. */
+    onAnalyzeAnother?: () => void;
 }
 
-export function AnalysisResult({ analysis, caseId }: AnalysisResultProps) {
+export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisResultProps) {
     const [openSection, setOpenSection] = useState<SectionKey | null>(null);
+    const [exporting, setExporting] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
+
+    const parties = analysis.understanding.parties.map((party) => party.name).filter(Boolean);
+    const authorityCount = analysis.research.reduce((n, r) => n + r.authorities.length, 0);
+    const stats = [
+        `${analysis.issues.length} issue${analysis.issues.length === 1 ? "" : "s"}`,
+        `${analysis.arguments.length} argument${analysis.arguments.length === 1 ? "" : "s"}`,
+        `${authorityCount} authorit${authorityCount === 1 ? "y" : "ies"}`,
+        `${analysis.stress_test.length} stress-test point${analysis.stress_test.length === 1 ? "" : "s"}`,
+    ];
+
+    async function handleExport(id: number) {
+        setExporting(true);
+        setExportError(null);
+        try {
+            await downloadCaseExport(id);
+        } catch (err) {
+            setExportError(
+                err instanceof Error ? err.message : "The export could not be downloaded.",
+            );
+        } finally {
+            setExporting(false);
+        }
+    }
 
     return (
         <>
+            <div className="result-header">
+                <div className="result-summary">
+                    <p className="result-case-type">{analysis.understanding.case_type}</p>
+                    {parties.length > 0 && <p className="result-parties">{parties.join(" · ")}</p>}
+                    <p className="result-stats">{stats.join(" · ")}</p>
+                </div>
+                <div className="result-actions">
+                    {caseId !== null && (
+                        <button
+                            type="button"
+                            className="analyze-button"
+                            onClick={() => handleExport(caseId)}
+                            disabled={exporting}
+                        >
+                            {exporting ? "Preparing…" : "Export as Word"}
+                        </button>
+                    )}
+                    {onAnalyzeAnother && (
+                        <>
+                            <button type="button" className="secondary-button" onClick={onAnalyzeAnother}>
+                                Analyze another case
+                            </button>
+                            <Link to="/cases" className="secondary-button">
+                                Case history
+                            </Link>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {exportError && <p role="alert">{exportError}</p>}
+
             {analysis.warnings.length > 0 && (
                 <div className="alert" role="alert">
                     {analysis.warnings.map((w) => (
@@ -93,14 +154,19 @@ export function AnalysisResult({ analysis, caseId }: AnalysisResultProps) {
             <AiDisclaimer />
 
             <div className="card-grid">
-                {buildSections(analysis).map((section) => (
-                    <Card
+                {buildSections(analysis).map((section, index) => (
+                    <div
                         key={section.key}
-                        icon={section.icon}
-                        title={section.title}
-                        preview={section.preview}
-                        onClick={() => setOpenSection(section.key)}
-                    />
+                        className="card-appear"
+                        style={{ animationDelay: `${index * 60}ms` }}
+                    >
+                        <Card
+                            icon={section.icon}
+                            title={section.title}
+                            preview={section.preview}
+                            onClick={() => setOpenSection(section.key)}
+                        />
+                    </div>
                 ))}
             </div>
 
@@ -131,7 +197,7 @@ export function AnalysisResult({ analysis, caseId }: AnalysisResultProps) {
             )}
             {openSection === "prepare" && analysis.hearing_prep && (
                 <Modal title="Prepare" onClose={() => setOpenSection(null)}>
-                    <PreparePage hearingPrep={analysis.hearing_prep} caseId={caseId} />
+                    <PreparePage hearingPrep={analysis.hearing_prep} />
                 </Modal>
             )}
         </>

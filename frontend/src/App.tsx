@@ -3,6 +3,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { AnalyzePage } from "./pages/AnalyzePage";
 import { CasesPage } from "./pages/CasesPage";
 import { CaseDetailPage } from "./pages/CaseDetailPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { AuthPage } from "./pages/AuthPage";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
@@ -35,6 +36,14 @@ function App(){
                     element={
                         <RequireAuth>
                             <CaseDetailPage />
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <RequireAuth>
+                            <ProfilePage />
                         </RequireAuth>
                     }
                 />

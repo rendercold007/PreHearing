@@ -270,33 +270,6 @@ input[type="file"] {
 
 /* Signed-in header */
 
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.user-email {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.logout-button {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.logout-button:hover:not(:disabled) {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
 ul, ol {
   padding-left: 1.25rem;
   margin: 0.25rem 0;
@@ -784,7 +757,7 @@ em {
   line-height: 1;
 }
 
-.modal-close:hover {
+.modal-close:hover:not(:disabled) {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
@@ -895,12 +868,6 @@ em {
   color: var(--accent);
 }
 
-.saved-note {
-  margin: 0.5rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
 .case-empty {
   color: var(--text-muted);
   margin-top: 1.5rem;
@@ -973,7 +940,7 @@ em {
   cursor: pointer;
 }
 
-.case-action:hover {
+.case-action:hover:not(:disabled) {
   color: var(--text);
   border-color: var(--border-hover);
 }
@@ -1118,4 +1085,713 @@ em {
   position: absolute;
   left: 0;
   color: var(--accent);
+}
+
+/* App shell — upload */
+
+.upload-section {
+  padding: 2rem;
+}
+
+.page-lede {
+  margin: 0 0 1.5rem;
+  color: var(--text-muted);
+}
+
+.upload-form {
+  display: block;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.015);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.dropzone:hover,
+.dropzone:focus-visible {
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+  outline: none;
+}
+
+.dropzone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.005);
+}
+
+.dropzone.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.dropzone-icon {
+  font-size: 1.5rem;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.dropzone-title {
+  margin: 0.4rem 0 0;
+  font-weight: 600;
+}
+
+.dropzone-browse {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dropzone-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.dropzone-input {
+  display: none;
+}
+
+.dropzone-rejected,
+.upload-validation {
+  margin: 0.75rem 0 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.file-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.8rem;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.file-name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.file-remove {
+  padding: 0;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border-radius: 50%;
+}
+
+.file-remove:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.analyze-button {
+  margin-top: 1.25rem;
+}
+
+/* Centred under the dropzone; scoped so the copy in the results header stays inline. */
+.upload-form .analyze-button {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* App shell — analysis progress */
+
+.analysis-progress {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.progress-elapsed {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.progress-track {
+  margin-top: 0.6rem;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  transition: width 0.4s ease;
+}
+
+.stage-progress .stage-running {
+  animation: stage-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes stage-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* App shell — results header */
+
+.result-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.result-case-type {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.result-parties {
+  margin: 0.15rem 0 0;
+  color: var(--text);
+}
+
+.result-stats {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.result-actions .analyze-button {
+  margin-top: 0;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.secondary-button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+
+.card-appear {
+  animation: card-in 0.45s ease both;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-appear,
+  .stage-progress .stage-running {
+    animation: none;
+  }
+  .progress-fill {
+    transition: none;
+  }
+}
+
+.detail-meta {
+  margin-bottom: 1rem;
+}
+
+/* App shell — sidebar layout */
+
+.app-shell {
+  min-height: 100vh;
+}
+
+/* A fixed drawer rather than a grid column: transform animates reliably, whereas a
+   grid-template-columns transition leaves the track stuck at its start width. */
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  width: 236px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  transition: transform 0.24s ease, visibility 0s;
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sidebar-toggle {
+  flex-shrink: 0;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.sidebar-link.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sidebar-icon {
+  width: 1.1rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.app-main {
+  padding: 1.25rem 1.5rem 4rem 260px;
+  min-width: 0;
+  transition: padding-left 0.24s ease;
+}
+
+.app-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 860px) {
+  /* Too narrow to give the drawer its own column — it overlays the page instead. */
+  .app-main,
+  .app-shell.sidebar-closed .app-main {
+    padding-left: 1.5rem;
+  }
+}
+
+/* App shell — account menu */
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--border-hover);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.avatar-sm {
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 0.8rem;
+}
+
+.avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.15rem;
+}
+
+.user-menu-wrap {
+  position: relative;
+}
+
+.avatar-button {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.avatar-button:hover .avatar {
+  background: rgba(201, 162, 78, 0.2);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  min-width: 220px;
+  padding: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.user-dropdown-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.35rem;
+}
+
+.user-dropdown-email {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.user-dropdown-item:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.user-dropdown-item.danger:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Profile */
+
+.profile-card {
+  padding: 1.75rem;
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-email {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.profile-sub {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.75rem 0;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-facts dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-facts dd {
+  margin: 0.3rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.profile-note {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+
+/* App shell — closed sidebar */
+
+.app-shell.sidebar-closed .app-main {
+  padding-left: 1.5rem;
+}
+
+/* visibility keeps the closed drawer out of the tab order; it is delayed so the
+   slide-out finishes before the sidebar disappears. */
+.app-sidebar.closed {
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.24s ease, visibility 0s linear 0.24s;
+}
+
+.app-topbar > :only-child {
+  margin-left: auto;
+}
+
+.sidebar-open-button {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-open-button:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-main {
+    transition: none;
+  }
+}
+
+/* Profile — identity, name editing, recent cases */
+
+.profile-identity-text {
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.profile-name-empty {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.profile-email {
+  margin: 0.15rem 0 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.profile-edit-button {
+  margin-left: auto;
+}
+
+.profile-edit {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-edit-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.profile-edit-row input {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.55rem 0.75rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+
+.profile-edit-row input:focus {
+  outline: none;
+  border-color: var(--border-hover);
+}
+
+.profile-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.profile-section-head h2 {
+  margin: 0;
+}
+
+.profile-see-all {
+  color: var(--accent);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.profile-see-all:hover {
+  text-decoration: underline;
+}
+
+.profile-case-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.profile-case-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-case-item:last-child {
+  border-bottom: none;
+}
+
+.profile-case-item .case-meta {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.user-dropdown-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-dropdown-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

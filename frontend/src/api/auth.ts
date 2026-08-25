@@ -54,11 +54,44 @@ export function login(email: string, password: string): Promise<AuthSession> {
     return authRequest("login", email, password);
 }
 
-export async function validateSession(token: string): Promise<boolean> {
+export interface AccountProfile {
+    email: string;
+    name: string;
+    created_at: string;
+}
+
+export async function fetchProfile(token: string): Promise<AccountProfile> {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return response.ok;
+    if (!response.ok) throw new Error("Could not load your account details.");
+    return response.json();
+}
+
+export async function updateName(token: string, name: string): Promise<AccountProfile> {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const detail = errorBody?.detail;
+        throw new Error(
+            typeof detail === "string" ? detail : "Your name could not be saved.",
+        );
+    }
+    return response.json();
+}
+
+/** null when the session is no longer valid; throws only if the backend is unreachable. */
+export async function loadSessionProfile(token: string): Promise<AccountProfile | null> {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error("Could not load your account details.");
+    return response.json();
 }
 
 export async function logout(token: string): Promise<void> {

@@ -36,6 +36,17 @@ class AuthResponse(BaseModel):
 
 class MeResponse(BaseModel):
     email: str
+    name: str
+    created_at: str
+
+
+class ProfileUpdate(BaseModel):
+    name: str = Field(max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value: str) -> str:
+        return value.strip()
 
 
 @dataclass
@@ -43,6 +54,8 @@ class CurrentUser:
     id: int
     email: str
     token: str
+    created_at: str = ""
+    name: str = ""
 
 
 def _create_session(conn: sqlite3.Connection, user_id: int) -> str:
@@ -64,7 +77,7 @@ def get_current_user(
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.email, sessions.expires_at
+            SELECT users.id, users.email, users.name, users.created_at, sessions.expires_at
             FROM sessions JOIN users ON users.id = sessions.user_id
             WHERE sessions.token = ?
             """,
@@ -78,7 +91,13 @@ def get_current_user(
             conn.execute("DELETE FROM sessions WHERE token = ?", (credentials.credentials,))
             raise HTTPException(status_code=401, detail="Invalid or expired session.")
 
-    return CurrentUser(id=row["id"], email=row["email"], token=credentials.credentials)
+    return CurrentUser(
+        id=row["id"],
+        email=row["email"],
+        token=credentials.credentials,
+        created_at=row["created_at"],
+        name=row["name"],
+    )
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=201)
@@ -114,7 +133,16 @@ def login(credentials: Credentials) -> AuthResponse:
 
 @router.get("/me", response_model=MeResponse)
 def me(user: CurrentUser = Depends(get_current_user)) -> MeResponse:
-    return MeResponse(email=user.email)
+    return MeResponse(email=user.email, name=user.name, created_at=user.created_at)
+
+
+@router.patch("/me", response_model=MeResponse)
+def update_me(
+    update: ProfileUpdate, user: CurrentUser = Depends(get_current_user)
+) -> MeResponse:
+    with get_connection() as conn:
+        conn.execute("UPDATE users SET name = ? WHERE id = ?", (update.name, user.id))
+    return MeResponse(email=user.email, name=update.name, created_at=user.created_at)
 
 
 @router.post("/logout", status_code=204)

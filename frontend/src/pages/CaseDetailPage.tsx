@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatSavedAt, getCase } from "../api/cases";
 import type { CaseDetail } from "../types";
 import { AnalysisResult } from "../components/AnalysisResult";
-import { AppHeader } from "../components/AppHeader";
+import { AppLayout } from "../components/AppLayout";
 
 export function CaseDetailPage() {
     const { caseId } = useParams();
@@ -24,10 +24,7 @@ export function CaseDetailPage() {
     }, [caseId]);
 
     return (
-        <main>
-            <AppHeader />
-
-            <div className="page-content">
+        <AppLayout>
                 <Link to="/cases" className="back-link">
                     ← Case history
                 </Link>
@@ -38,8 +35,9 @@ export function CaseDetailPage() {
 
                 {caseDetail && (
                     <>
-                        <h1 className="page-title">{caseDetail.title}</h1>
-                        <p className="case-meta">
+                        {/* The result header below carries the case type, so the saved
+                            title would only repeat it — show the run's provenance instead. */}
+                        <p className="case-meta detail-meta">
                             Analyzed {formatSavedAt(caseDetail.created_at)}
                             {caseDetail.filenames.length > 0 &&
                                 ` · ${caseDetail.filenames.join(", ")}`}
@@ -47,7 +45,6 @@ export function CaseDetailPage() {
                         <AnalysisResult analysis={caseDetail.analysis} caseId={caseDetail.id} />
                     </>
                 )}
-            </div>
-        </main>
+        </AppLayout>
     );
 }

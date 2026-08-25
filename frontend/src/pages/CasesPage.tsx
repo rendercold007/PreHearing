@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteCase, formatSavedAt, listCases } from "../api/cases";
 import type { CaseSummary } from "../types";
-import { AppHeader } from "../components/AppHeader";
+import { AppLayout } from "../components/AppLayout";
 
 export function CasesPage() {
     const [cases, setCases] = useState<CaseSummary[] | null>(null);
@@ -30,10 +30,7 @@ export function CasesPage() {
     }
 
     return (
-        <main>
-            <AppHeader />
-
-            <div className="page-content">
+        <AppLayout>
                 <h1 className="page-title">Case history</h1>
 
                 {error && <p role="alert">{error}</p>}
@@ -97,7 +94,6 @@ export function CasesPage() {
                         ))}
                     </ul>
                 )}
-            </div>
-        </main>
+        </AppLayout>
     );
 }

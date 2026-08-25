@@ -3,7 +3,7 @@ import {analyzeCaseFiles} from "../api/client";
 import type {CaseAnalysis} from "../types";
 import {UploadPage} from "./UploadPage";
 import { AnalysisResult } from "../components/AnalysisResult";
-import { AppHeader } from "../components/AppHeader";
+import { AppLayout } from "../components/AppLayout";
 
 type Status = "idle" | "loading" | "error" | "done";
 
@@ -45,22 +45,18 @@ export function AnalyzePage(){
     }
 
     return(
-        <main>
-            <AppHeader />
-
-            <div className="page-content">
+        <AppLayout>
             {status != "done" &&(
                 <UploadPage status={status} error={error} progress={progress} onFilesSelected={handleFilesSelected} />
             )}
 
             {status === "done" && analysis && (
-                <>
-                <button onClick={handleReset}>Analyze another case</button>
-                {caseId !== null && <p className="saved-note">Saved to your case history.</p>}
-                <AnalysisResult analysis={analysis} caseId={caseId} />
-                </>
+                <AnalysisResult
+                    analysis={analysis}
+                    caseId={caseId}
+                    onAnalyzeAnother={handleReset}
+                />
             )}
-            </div>
-        </main>
+        </AppLayout>
     );
 }

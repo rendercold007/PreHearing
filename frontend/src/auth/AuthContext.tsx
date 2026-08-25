@@ -2,52 +2,69 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import {
     clearSession,
     getStoredSession,
+    loadSessionProfile,
     login as apiLogin,
     logout as apiLogout,
     signup as apiSignup,
     storeSession,
-    validateSession,
 } from "../api/auth";
 
 interface AuthContextValue {
     email: string | null;
+    name: string;
     isAuthenticated: boolean;
     checking: boolean;
     login: (email: string, password: string) => Promise<void>;
     signup: (email: string, password: string) => Promise<void>;
     logout: () => void;
+    /** Called after the profile page saves, so the header avatar updates immediately. */
+    setName: (name: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [email, setEmail] = useState<string | null>(() => getStoredSession()?.email ?? null);
+    const [name, setName] = useState("");
     const [checking, setChecking] = useState(() => getStoredSession() !== null);
 
     useEffect(() => {
         const session = getStoredSession();
         if (!session) return;
-        validateSession(session.token)
-            .then((valid) => {
-                if (!valid) {
+        loadSessionProfile(session.token)
+            .then((profile) => {
+                if (!profile) {
                     clearSession();
                     setEmail(null);
+                    return;
                 }
+                setName(profile.name);
             })
             .catch(() => undefined) // backend unreachable — keep the session and let API calls surface errors
             .finally(() => setChecking(false));
     }, []);
 
+    async function loadName(token: string) {
+        try {
+            const profile = await loadSessionProfile(token);
+            setName(profile?.name ?? "");
+        } catch {
+            setName("");
+        }
+    }
+
     async function login(userEmail: string, password: string) {
         const session = await apiLogin(userEmail, password);
         storeSession(session);
         setEmail(session.email);
+        await loadName(session.token);
     }
 
     async function signup(userEmail: string, password: string) {
         const session = await apiSignup(userEmail, password);
         storeSession(session);
         setEmail(session.email);
+        await loadName(session.token);
     }
 
     function logout() {
@@ -55,11 +72,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) void apiLogout(session.token);
         clearSession();
         setEmail(null);
+        setName("");
     }
 
     return (
         <AuthContext.Provider
-            value={{ email, isAuthenticated: email !== null, checking, login, signup, logout }}
+            value={{
+                email,
+                name,
+                isAuthenticated: email !== null,
+                checking,
+                login,
+                signup,
+                logout,
+                setName,
+            }}
         >
             {children}
         </AuthContext.Provider>
