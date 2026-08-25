@@ -54,4 +54,21 @@ export interface CaseAnalysis {
     arguments: Argument[];
     stress_test: StressTestPoint[];
     hearing_prep: HearingPrep;
+    research: IssueResearch[];
+}
+
+export interface Authority {
+    doc_id: string;
+    title: string;
+    court: string;
+    date: string;
+    url: string;
+    snippet: string;
+    relevance: string;
+}
+
+export interface IssueResearch{
+    issue_statement: string;
+    queries: string[];
+    authorities: Authority[];
 }

@@ -12,9 +12,10 @@ import { Modal } from "../components/Modal";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
+import {ResearchPage} from "./ResearchPage";
 
 type Status = "idle" | "loading" | "error" | "done";
-type SectionKey = "understanding" | "issues" | "arguments" | "stressTest" | "prepare";
+type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
 
 function truncate(text: string, max: number): string {
     const trimmed = text.trim();
@@ -37,6 +38,15 @@ function buildSections(analysis: CaseAnalysis) {
                 analysis.issues.length === 0
                     ? "No issues were identified."
                     : `${analysis.issues.length} issue${analysis.issues.length === 1 ? "" : "s"} identified — leading with "${truncate(analysis.issues[0].statement, 80)}"`,
+        },
+         {
+            key: "research" as const,
+            icon: "📚",
+            title: "Research",
+            preview:
+                analysis.research.length === 0
+                    ? "No research results."
+                    : `${analysis.research.reduce((n, r) => n + r.authorities.length, 0)} authorities found across ${analysis.research.length} issue${analysis.research.length === 1 ? "" : "s"}.`,
         },
         {
             key: "arguments" as const,
@@ -141,6 +151,11 @@ export function AnalyzePage(){
                 {openSection === "issues" && (
                     <Modal title="Issues Before the Court" onClose={() => setOpenSection(null)}>
                         <IssuesPage issues={analysis.issues} />
+                    </Modal>
+                )}
+                {openSection === "research" && (
+                    <Modal title="Research" onClose={() => setOpenSection(null)}>
+                        <ResearchPage research={analysis.research} />
                     </Modal>
                 )}
                 {openSection === "arguments" && (

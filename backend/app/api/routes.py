@@ -9,6 +9,7 @@ from app.models.schemas import CaseAnalysis
 from app.prepare.assembler import assemble_hearing_prep
 from app.stresstest.tester import stress_test
 from app.understand.extractor import extract_understanding
+from app.research.researcher import research_issues
 
 router = APIRouter()
 
@@ -37,8 +38,8 @@ async def analyze_case(
     arguments = generate_arguments(understanding, issues,  model=settings.model_for_tier("strong"))
     stress_test_points = stress_test(understanding, issues, arguments, model=settings.model_for_tier("strong"))
     hearing_prep = assemble_hearing_prep(
-        understanding, issues, arguments, stress_test_points, model=settings.model_for_tier("strong")
-    )
+        understanding, issues, arguments, stress_test_points, model=settings.model_for_tier("strong"))
+    research = research_issues(issues, model=settings.model_for_tier("mid")) 
 
     return CaseAnalysis(
         understanding=understanding,
@@ -46,4 +47,5 @@ async def analyze_case(
         arguments=arguments,
         stress_test=stress_test_points,
         hearing_prep=hearing_prep,
+        research=research,
     )

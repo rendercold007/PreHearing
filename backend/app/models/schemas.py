@@ -49,6 +49,20 @@ class HearingPrep(BaseModel):
     outline: list[OutlinePoint]
     checklist: list[ChecklistItem]
 
+class Authority(BaseModel):
+    doc_id: str
+    title: str
+    court: str = ""
+    date: str = ""
+    url: str
+    snippet: str = ""
+    relevance: str = "" 
+
+class IssueResearch(BaseModel):
+    issue_statement: str
+    queries: list[str]
+    authorities: list[Authority]  
+
 
 class CaseAnalysis(BaseModel):
     understanding: CaseUnderstanding
@@ -56,3 +70,4 @@ class CaseAnalysis(BaseModel):
     arguments: list[Argument]
     stress_test: list[StressTestPoint]
     hearing_prep: HearingPrep
+    research: list[IssueResearch] = []

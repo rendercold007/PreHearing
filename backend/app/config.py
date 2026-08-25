@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     openrouter_model_cheap: str
     openrouter_model_mid: str
     openrouter_model_strong: str
+    indiankanoon_api_token: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
     def model_for_tier(self, tier: Tier) -> str:
