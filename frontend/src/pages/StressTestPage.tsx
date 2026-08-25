@@ -1,5 +1,4 @@
 import type { StressTestPoint } from "../types";
-import { AiDisclaimer } from "../components/AiDisclaimer";
 
 interface StressTestPageProps {
   stressTest: StressTestPoint[];
@@ -9,7 +8,6 @@ export function StressTestPage({ stressTest }: StressTestPageProps) {
   return (
     <section>
       <h2>Stress Test</h2>
-      <AiDisclaimer />
 
       {stressTest.length === 0 && <p>No weaknesses or objections were identified.</p>}
 

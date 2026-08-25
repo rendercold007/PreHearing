@@ -117,9 +117,9 @@ const HONESTY = [
       "No paraphrase stands alone. Open the full text on Indian Kanoon and read it yourself before you rely on it.",
   },
   {
-    title: "Marked as AI-generated, everywhere",
+    title: "Exports say what they are",
     description:
-      "In the app and at the top of the exported Word document — so nothing leaves your desk without saying what it is.",
+      "The Word document opens with an AI-generated notice — so nothing leaves your desk without saying what it is.",
   },
 ];
 

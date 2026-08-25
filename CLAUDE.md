@@ -98,7 +98,6 @@ frontend/
       Avatar.tsx             initials circle from the display name, falling back to the email (initialsFor())
       AnalysisResult.tsx     result header (case type, parties, counts, Export as Word / Analyze another / Case history) + the six cards and their modals — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case)
       AppHeader.tsx          logged-in header: logo, Analyze / Case history nav, email, sign out
-      AiDisclaimer.tsx       "AI-generated, verify before use" banner — results grid, Arguments/StressTest modals, and prepended to the Prepare text export
       Citations.tsx          renders a CitedFact's citations as (document, page/paragraph) badge chips
       Logo.tsx               site logo used in headers
       Modal.tsx              overlay dialog (closes on backdrop click, close button, or Escape)
@@ -115,7 +114,7 @@ frontend/
       ArgumentsPage.tsx      renders list[Argument] (inside modal)
       StressTestPage.tsx     renders list[StressTestPoint] (inside modal)
       ResearchPage.tsx       renders list[IssueResearch] — authorities per issue with Indian Kanoon links (inside modal). Pass-agnostic: AnalysisResult hands it either the supporting or the adverse list
-      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + the client-side "Export as text" download (inside modal). The Word export lives in AnalysisResult's header, which fetches it as a blob — it needs the Bearer header, so it can't be a plain link
+      PreparePage.tsx        renders HearingPrep (brief, outline, checklist) + the client-side "Export as text" download (plain content — the AI-generated notice now lives only in the Word export, `export/docx_builder.py::DISCLAIMER`) (inside modal). The Word export lives in AnalysisResult's header, which fetches it as a blob — it needs the Bearer header, so it can't be a plain link
 ```
 
 ## Status

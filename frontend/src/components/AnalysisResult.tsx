@@ -10,7 +10,6 @@ import { StressTestPage } from "../pages/StressTestPage";
 import { PreparePage } from "../pages/PreparePage";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
-import { AiDisclaimer } from "./AiDisclaimer";
 
 type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
 
@@ -174,8 +173,6 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                     ))}
                 </div>
             )}
-
-            <AiDisclaimer />
 
             <div className="card-grid">
                 {buildSections(analysis).map((section, index) => (

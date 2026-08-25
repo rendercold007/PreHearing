@@ -1,6 +1,5 @@
 import type { Argument } from "../types";
 import { Citations } from "../components/Citations";
-import { AiDisclaimer } from "../components/AiDisclaimer";
 
 interface ArgumentsPageProps {
   arguments: Argument[];
@@ -10,7 +9,6 @@ export function ArgumentsPage({ arguments: args }: ArgumentsPageProps) {
   return (
     <section>
       <h2>Arguments for Hearing</h2>
-      <AiDisclaimer />
 
       {args.length === 0 && <p>No arguments were generated.</p>}
 
