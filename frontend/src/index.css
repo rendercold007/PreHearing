@@ -994,3 +994,128 @@ em {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+.sample-card {
+  margin-top: 1.5rem;
+  padding: 1.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.sample-label {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sample-point {
+  margin: 0.5rem 0 1.25rem;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+.sample-heading {
+  margin: 1rem 0 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sample-fact,
+.sample-authority {
+  margin: 0;
+}
+
+.sample-authority {
+  color: var(--text-muted);
+}
+
+.sample-counter {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.sample-counter p {
+  margin: 0;
+}
+
+.sample-counter .sample-heading {
+  margin: 1rem 0 0.25rem;
+}
+
+.sample-counter .sample-heading:first-child {
+  margin-top: 0;
+}
+
+.sample-note {
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.honesty-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.honesty-item {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.honesty-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+}
+
+.honesty-title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.honesty-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.limit-list {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.limit-item {
+  position: relative;
+  padding-left: 1.6rem;
+  color: var(--text-muted);
+}
+
+.limit-item::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}

@@ -97,7 +97,7 @@ frontend/
       Logo.tsx               site logo used in headers
       Modal.tsx              overlay dialog (closes on backdrop click, close button, or Escape)
     pages/
-      LandingPage.tsx        marketing page at "/" — nav, hero, "How it works" steps, deliverables, feature grid, FAQ, CTA band, footer
+      LandingPage.tsx        marketing page at "/" — nav, hero, "How it works" steps, sample-argument card, deliverables, feature grid, "How we keep it honest", "What it doesn't do", FAQ, CTA band, footer. Copy must stay true to the built product (it previously claimed no account and no storage)
       AuthPage.tsx           login/signup form (mode prop), used at /login and /signup
       AnalyzePage.tsx        state machine (idle/loading/error/done), owns the API call; on done, renders <AnalysisResult>
       CasesPage.tsx          saved case list (newest first) with open + inline-confirm delete; empty/loading/error states

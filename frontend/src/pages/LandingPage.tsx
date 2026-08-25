@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
+import { Citations } from "../components/Citations";
 import { useAuth } from "../auth/AuthContext";
 
 const STEPS = [
@@ -16,6 +17,10 @@ const STEPS = [
     description: "A ranked list of what the court actually has to decide, most central first.",
   },
   {
+    title: "Find the authorities",
+    description: "Indian Kanoon is searched per issue, for your position and for the other side's.",
+  },
+  {
     title: "Build your arguments",
     description: "Every point paired with the counter-argument opposing counsel is likely to raise, and your rebuttal.",
   },
@@ -25,7 +30,7 @@ const STEPS = [
   },
   {
     title: "Prepare the pack",
-    description: "A hearing brief, oral-argument outline, and checklist — ready to export.",
+    description: "A hearing brief, oral-argument outline, and checklist — exportable as a Word document.",
   },
 ];
 
@@ -36,19 +41,29 @@ const FEATURES = [
     description: "Upload pleadings and exhibits together. Duplicate content across files is detected automatically.",
   },
   {
-    icon: "🎯",
-    title: "Counter-argument, built in",
-    description: "Every argument comes with the opposition's likely response and your rebuttal — not just the point itself.",
-  },
-  {
     icon: "🔍",
     title: "OCR fallback",
     description: "Scanned filings with no text layer are still read, page by page.",
   },
   {
-    icon: "📑",
-    title: "Exportable hearing pack",
-    description: "Brief, outline, and checklist as a downloadable file — no account, no setup.",
+    icon: "📚",
+    title: "Indian case law search",
+    description: "Authorities come from live Indian Kanoon search — for your position and against it.",
+  },
+  {
+    icon: "🗂️",
+    title: "Case history",
+    description: "Every analysis is saved to your account. Reopen yesterday's case in full, or delete it.",
+  },
+  {
+    icon: "📝",
+    title: "Word export",
+    description: "The hearing pack downloads as an editable .docx — brief, arguments with citations, checklist.",
+  },
+  {
+    icon: "🎯",
+    title: "Counter-argument, built in",
+    description: "Every argument comes with the opposition's likely response and your rebuttal — not just the point itself.",
   },
 ];
 
@@ -64,6 +79,11 @@ const DELIVERABLES = [
     description: "The legal and factual questions before the court, ordered by how central they are.",
   },
   {
+    icon: "📚",
+    title: "Authorities per issue",
+    description: "Judgments found for each issue, each one linking out to the full text on Indian Kanoon.",
+  },
+  {
     icon: "🗣️",
     title: "Arguments with rebuttals",
     description: "Each argument mapped from issue to facts to conclusion, with the likely counter and your answer to it.",
@@ -76,8 +96,38 @@ const DELIVERABLES = [
   {
     icon: "📋",
     title: "Hearing pack",
-    description: "A hearing brief, an oral-argument outline, and a pre-hearing checklist — exportable in one click.",
+    description: "A hearing brief, an oral-argument outline, and a pre-hearing checklist — exportable to Word.",
   },
+];
+
+const HONESTY = [
+  {
+    title: "Every fact points back to your file",
+    description:
+      "Facts and supporting facts carry the document and page they came from, so you can check any line against the original in seconds.",
+  },
+  {
+    title: "It cannot invent a citation",
+    description:
+      "Authorities are never written by the model. It picks by number from results returned by Indian Kanoon, and any pick outside that list is discarded before you see it.",
+  },
+  {
+    title: "Every authority links to the judgment",
+    description:
+      "No paraphrase stands alone. Open the full text on Indian Kanoon and read it yourself before you rely on it.",
+  },
+  {
+    title: "Marked as AI-generated, everywhere",
+    description:
+      "In the app and at the top of the exported Word document — so nothing leaves your desk without saying what it is.",
+  },
+];
+
+const LIMITS = [
+  "It is not legal advice, and it does not replace your judgment. Every output is a draft for you to verify and own.",
+  "Case law search covers Indian judgments via Indian Kanoon. Other jurisdictions are not supported.",
+  "It reads what you upload. Facts that live only in your head, or in a file you didn't attach, won't appear.",
+  "It does not file anything, track deadlines, or manage your matters.",
 ];
 
 const FAQS = [
@@ -94,7 +144,17 @@ const FAQS = [
   {
     question: "Are my case files stored?",
     answer:
-      "No. Files are processed for your request and results are returned in the same response — nothing is saved to a database, and there is no account or history.",
+      "The documents you upload are read in memory to produce the analysis and are not kept afterwards. The analysis itself is saved to your account so you can reopen it from your case history, and you can delete any case permanently from that page.",
+  },
+  {
+    question: "Do I need an account?",
+    answer:
+      "Yes. Analyses are tied to your account so your case history is yours alone — no other account can read or export your cases. Signing up takes an email and a password.",
+  },
+  {
+    question: "Which jurisdiction does it cover?",
+    answer:
+      "Case law search runs against Indian Kanoon, so authorities are Indian judgments. The document reading, issue analysis, and argument drafting are not jurisdiction-specific, but the citations are.",
   },
   {
     question: "Is this legal advice?",
@@ -102,6 +162,8 @@ const FAQS = [
       "No. PreHearing is a preparation tool for lawyers. Everything it produces is a draft for a qualified lawyer to review, verify, and own.",
   },
 ];
+
+const SAMPLE_CITATION = [{ source_document: "plaint.pdf", location: "page 4" }];
 
 export function LandingPage() {
   const { isAuthenticated } = useAuth();
@@ -112,6 +174,7 @@ export function LandingPage() {
         <Logo />
         <nav className="site-nav">
           <a href="#how-it-works" className="nav-link">How it works</a>
+          <a href="#sample" className="nav-link">Sample output</a>
           <a href="#deliverables" className="nav-link">What you get</a>
           <a href="#faq" className="nav-link">FAQ</a>
           {!isAuthenticated && (
@@ -142,11 +205,13 @@ export function LandingPage() {
           <Link to="/app" className="cta-button">
             Get Started →
           </Link>
-          <a href="#how-it-works" className="cta-secondary">
-            See how it works
+          <a href="#sample" className="cta-secondary">
+            See a sample output
           </a>
         </div>
-        <p className="hero-note">No account needed · Files are never stored</p>
+        <p className="hero-note">
+          Every fact cited to your file · Authorities from Indian Kanoon, never invented
+        </p>
       </section>
 
       <section className="landing-section" id="how-it-works">
@@ -165,10 +230,51 @@ export function LandingPage() {
         </ol>
       </section>
 
+      <section className="landing-section" id="sample">
+        <h2>What an argument looks like</h2>
+        <p className="section-lede">
+          Not a summary — a point you can stand up and make, with the answer to the obvious
+          objection already in hand.
+        </p>
+        <div className="sample-card">
+          <p className="sample-label">Issue 1 · Whether the termination notice was validly served</p>
+          <h3 className="sample-point">
+            The notice was validly served under the terms of the lease.
+          </h3>
+
+          <p className="sample-heading">Supporting fact</p>
+          <p className="sample-fact">
+            The notice was couriered to the registered address on 3 March and delivery was
+            acknowledged the following day.
+            <Citations citations={SAMPLE_CITATION} />
+          </p>
+
+          <p className="sample-heading">Authority</p>
+          <p className="sample-authority">
+            A judgment on what constitutes valid service — with its court and year, linking to the
+            full text on Indian Kanoon.
+          </p>
+
+          <div className="sample-counter">
+            <p className="sample-heading">Anticipated counter-argument</p>
+            <p>Service was addressed to a premises the respondent had already vacated.</p>
+            <p className="sample-heading">Rebuttal</p>
+            <p>
+              No change of address was communicated as the lease requires, so service at the
+              registered address stands.
+            </p>
+          </div>
+        </div>
+        <p className="sample-note">
+          Illustrative example, not a real case. In the app the citation chip and the authority both
+          come from your own file and from live search — and every argument is built this way.
+        </p>
+      </section>
+
       <section className="landing-section" id="deliverables">
         <h2>What you walk away with</h2>
         <p className="section-lede">
-          Five deliverables from a single analysis, each one openable and readable on its own.
+          Six deliverables from a single analysis, each one openable and readable on its own.
         </p>
         <div className="deliverable-grid">
           {DELIVERABLES.map((item) => (
@@ -194,6 +300,36 @@ export function LandingPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="landing-section" id="honesty">
+        <h2>How we keep it honest</h2>
+        <p className="section-lede">
+          A tool that makes up a citation is worse than no tool at all. This one is built so it
+          can't.
+        </p>
+        <ul className="honesty-list">
+          {HONESTY.map((item) => (
+            <li key={item.title} className="honesty-item">
+              <h3 className="honesty-title">{item.title}</h3>
+              <p className="honesty-description">{item.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="landing-section" id="limits">
+        <h2>What it doesn't do</h2>
+        <p className="section-lede">
+          Worth knowing before you sign up rather than after.
+        </p>
+        <ul className="limit-list">
+          {LIMITS.map((limit) => (
+            <li key={limit} className="limit-item">
+              {limit}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="landing-section" id="faq">
