@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Postgres connection string. Defaults to the local docker-compose service so a
     # fresh checkout runs against `docker compose up` with no extra configuration.
-    database_url: str = "postgresql://prehearing:prehearing@localhost:5432/prehearing"
+    database_url: str = "postgresql://prehearing:prehearing@localhost:5433/prehearing"
 
     # Browser origins allowed to call the API (CORS), comma-separated. Defaults to the
     # local Vite dev server; set to the deployed frontend's origin(s) in production.

@@ -12,7 +12,7 @@ from app.config import get_settings
 BASE_DSN = (
     os.environ.get("TEST_DATABASE_URL")
     or os.environ.get("DATABASE_URL")
-    or "postgresql://prehearing:prehearing@localhost:5432/prehearing"
+    or "postgresql://prehearing:prehearing@localhost:5433/prehearing"
 )
 
 

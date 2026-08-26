@@ -13,8 +13,10 @@ services:
       POSTGRES_USER: prehearing
       POSTGRES_PASSWORD: prehearing
       POSTGRES_DB: prehearing
+    # Host 5433 to avoid clashing with a system Postgres on the default 5432. The
+    # container still listens on 5432 internally; DATABASE_URL points at host 5433.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - prehearing_pgdata:/var/lib/postgresql/data
     healthcheck:
