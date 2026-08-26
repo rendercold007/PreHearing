@@ -1,0 +1,9 @@
+# Serve the Vite SPA. Railway injects $PORT; default to 80 for a local `docker run`.
+:{$PORT:80} {
+	root * /usr/share/caddy
+	encode gzip
+	# Client-side routing: unknown paths fall back to index.html so deep links like
+	# /cases/:id survive a page refresh instead of 404ing.
+	try_files {path} /index.html
+	file_server
+}

@@ -1,0 +1,18 @@
+# Keep the build context small and free of local-only / secret files.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+tests/
+
+# Never bake secrets or the stale local SQLite db into the image.
+.env
+.env.*
+*.db
+
+# Git / editor cruft
+.git/
+.gitignore
+*.swp
+.DS_Store

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { downloadCaseExport } from "../api/cases";
+import { downloadCaseExport, type ExportFormat } from "../api/cases";
 import type { CaseAnalysis, IssueResearch } from "../types";
 import { UnderstandingPage } from "../pages/UnderstandingPage";
 import { IssuesPage } from "../pages/IssuesPage";
@@ -96,7 +96,7 @@ interface AnalysisResultProps {
 export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisResultProps) {
     const [openSection, setOpenSection] = useState<SectionKey | null>(null);
     const [researchPass, setResearchPass] = useState<ResearchPass>("supporting");
-    const [exporting, setExporting] = useState(false);
+    const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
 
     const parties = analysis.understanding.parties.map((party) => party.name).filter(Boolean);
@@ -108,17 +108,17 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
         `${analysis.stress_test.length} stress-test point${analysis.stress_test.length === 1 ? "" : "s"}`,
     ];
 
-    async function handleExport(id: number) {
-        setExporting(true);
+    async function handleExport(id: number, format: ExportFormat) {
+        setExportingFormat(format);
         setExportError(null);
         try {
-            await downloadCaseExport(id);
+            await downloadCaseExport(id, format);
         } catch (err) {
             setExportError(
                 err instanceof Error ? err.message : "The export could not be downloaded.",
             );
         } finally {
-            setExporting(false);
+            setExportingFormat(null);
         }
     }
 
@@ -132,14 +132,24 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                 </div>
                 <div className="result-actions">
                     {caseId !== null && (
-                        <button
-                            type="button"
-                            className="analyze-button"
-                            onClick={() => handleExport(caseId)}
-                            disabled={exporting}
-                        >
-                            {exporting ? "Preparing…" : "Export as Word"}
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                className="analyze-button"
+                                onClick={() => handleExport(caseId, "pdf")}
+                                disabled={exportingFormat !== null}
+                            >
+                                {exportingFormat === "pdf" ? "Preparing…" : "Export as PDF"}
+                            </button>
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => handleExport(caseId, "docx")}
+                                disabled={exportingFormat !== null}
+                            >
+                                {exportingFormat === "docx" ? "Preparing…" : "Export as Word"}
+                            </button>
+                        </>
                     )}
                     {onAnalyzeAnother && (
                         <>

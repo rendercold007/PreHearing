@@ -1,0 +1,16 @@
+# Keep the build context lean; deps are reinstalled inside the image.
+node_modules/
+dist/
+dist-ssr/
+
+# Local env files — VITE_* values come in as build args on Railway instead.
+.env
+.env.*
+!.env.example
+
+# Git / editor / OS cruft
+.git/
+.gitignore
+*.log
+.DS_Store
+*.swp

@@ -9,6 +9,7 @@ from app.auth.routes import CurrentUser, get_current_user
 from app.cases import routes as case_routes
 from app.cases.store import save_case
 from app.export.docx_builder import build_hearing_pack, export_filename
+from app.export.pdf_builder import build_hearing_pack_pdf, export_filename_pdf
 from app.models.schemas import (
     Argument,
     Authority,
@@ -134,3 +135,45 @@ def test_export_endpoint_returns_a_word_document(client_for, user_id):
 def test_export_is_scoped_to_the_owner(client_for, user_id, other_user_id):
     case_id = save_case(user_id, ANALYSIS, ["lease.pdf"])
     assert client_for(other_user_id).get(f"/api/cases/{case_id}/export.docx").status_code == 404
+
+
+# --- PDF export ---------------------------------------------------------------
+
+
+def test_pdf_pack_renders_for_a_full_analysis():
+    content = build_hearing_pack_pdf("Lease dispute", ANALYSIS)
+    assert content[:5] == b"%PDF-"
+    assert len(content) > 1000  # non-trivial rendered document
+
+
+def test_pdf_pack_survives_a_missing_prepare_stage():
+    analysis = ANALYSIS.model_copy(update={"hearing_prep": None})
+    content = build_hearing_pack_pdf("Lease dispute", analysis)
+    assert content[:5] == b"%PDF-"
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Sharma v. State — civil suit", "sharma-v-state-civil-suit.pdf"),
+        ("!!!", "hearing-pack.pdf"),
+    ],
+)
+def test_pdf_export_filename_is_slugified(title, expected):
+    assert export_filename_pdf(title) == expected
+
+
+def test_pdf_export_endpoint_returns_a_pdf(client_for, user_id):
+    case_id = save_case(user_id, ANALYSIS, ["lease.pdf"])
+    response = client_for(user_id).get(f"/api/cases/{case_id}/export.pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert "attachment; filename=" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith('.pdf"')
+    assert response.content[:5] == b"%PDF-"
+
+
+def test_pdf_export_is_scoped_to_the_owner(client_for, user_id, other_user_id):
+    case_id = save_case(user_id, ANALYSIS, ["lease.pdf"])
+    assert client_for(other_user_id).get(f"/api/cases/{case_id}/export.pdf").status_code == 404

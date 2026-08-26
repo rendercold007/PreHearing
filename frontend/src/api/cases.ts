@@ -34,19 +34,21 @@ export async function deleteCase(id: number): Promise<void> {
     await request(`/cases/${id}`, { method: "DELETE" });
 }
 
-function filenameFrom(disposition: string | null): string {
+export type ExportFormat = "docx" | "pdf";
+
+function filenameFrom(disposition: string | null, format: ExportFormat): string {
     const match = disposition?.match(/filename="([^"]+)"/);
-    return match?.[1] ?? "hearing-pack.docx";
+    return match?.[1] ?? `hearing-pack.${format}`;
 }
 
 /** The export needs a Bearer header, so it is fetched as a blob rather than linked to. */
-export async function downloadCaseExport(id: number): Promise<void> {
-    const response = await request(`/cases/${id}/export.docx`);
+export async function downloadCaseExport(id: number, format: ExportFormat = "docx"): Promise<void> {
+    const response = await request(`/cases/${id}/export.${format}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = filenameFrom(response.headers.get("Content-Disposition"));
+    link.download = filenameFrom(response.headers.get("Content-Disposition"), format);
     link.click();
     URL.revokeObjectURL(url);
 }

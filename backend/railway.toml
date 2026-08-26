@@ -1,0 +1,15 @@
+# Railway service config for the PreHearing backend.
+# In the Railway UI, set this service's Root Directory to `backend` so this file and
+# the Dockerfile beside it are picked up.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Railway injects $PORT; the Dockerfile CMD already binds to it, so no startCommand
+# override is needed here.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

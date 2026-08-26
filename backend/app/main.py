@@ -54,6 +54,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/api/health")
+async def health():
+    """Liveness probe for the platform healthcheck. Deliberately does no DB work so a
+    transient Postgres blip doesn't make the platform kill an otherwise-healthy app."""
+    return {"status": "ok"}
+
+
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(cases_router, prefix="/api")

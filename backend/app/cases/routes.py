@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.auth.routes import CurrentUser, get_current_user
 from app.cases.store import delete_case, get_case, list_cases
 from app.export.docx_builder import build_hearing_pack, export_filename
+from app.export.pdf_builder import build_hearing_pack_pdf, export_filename_pdf
 from app.models.schemas import CaseAnalysis
 
 router = APIRouter(prefix="/cases")
@@ -54,6 +55,24 @@ async def export_saved_case(
         media_type=DOCX_MEDIA_TYPE,
         headers={
             "Content-Disposition": f'attachment; filename="{export_filename(case["title"])}"'
+        },
+    )
+
+
+@router.get("/{case_id}/export.pdf")
+async def export_saved_case_pdf(
+    case_id: int, user: CurrentUser = Depends(get_current_user)
+) -> Response:
+    case = await run_in_threadpool(get_case, user.id, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found.")
+
+    content = await run_in_threadpool(build_hearing_pack_pdf, case["title"], case["analysis"])
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{export_filename_pdf(case["title"])}"'
         },
     )
 

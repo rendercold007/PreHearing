@@ -15,7 +15,7 @@ per-stage notes say what each one still lacks:
 | 04 | **Research** | Search + rerank over case law for real citations. | cheap | **Built, API-search-first** (no vector DB): per issue, `mid` generates keyword queries → Indian Kanoon search API → `mid` reranks hits by numbered index (validated server-side so it can't cite results that don't exist). Requires `INDIANKANOON_API_TOKEN`; without it the stage returns no results and the rest of the pipeline is unaffected. Runs twice: once before argument generation (supporting authorities → Stage 05) and once in adverse mode (queries/rerank flipped to the opponent's position → Stage 06). Both passes are carried on `CaseAnalysis` (`research` / `adverse_research`) and render in the Research card behind a Supporting | Opposing toggle — the adverse pass used to exist only inside the stress-test prompt. Cases saved before `adverse_research` existed load with it defaulted to `[]`. |
 | 05 | **Build arguments** | Map issue → proposition → authority → facts → conclusion; each argument also carries the strongest anticipated counter-argument and a rebuttal. | strong | **Built** (arguments are built against the Stage 03 issue list + case facts; supporting facts cited by validated fact number, and Stage 04 authorities attached by validated authority number — `Argument.authorities`) |
 | 06 | **Stress-test** | Adverse authorities, factual weaknesses, likely objections, judge questions. | strong | **Built** (stress-tests the actual understanding/issues/arguments already produced; adverse authorities from the flipped Stage 04 run attached per point by validated number — `StressTestPoint.authorities`) |
-| 07 | **Prepare** | Assemble hearing brief, oral-argument outline, checklist as an exportable pack. | strong | **Built** (assembled from the Stage 02/03/05/06 outputs already produced; exports as a **Word document** rendered server-side from the saved case — `GET /api/cases/{id}/export.docx`, brief + outline + arguments with their citations and authorities + checklist — alongside the original client-side text download) |
+| 07 | **Prepare** | Assemble hearing brief, oral-argument outline, checklist as an exportable pack. | strong | **Built** (assembled from the Stage 02/03/05/06 outputs already produced; exports server-side from the saved case as either a **Word document** (`GET /api/cases/{id}/export.docx`, python-docx) or a **PDF** (`GET /api/cases/{id}/export.pdf`, reportlab) — both render the same content: brief + outline + arguments with their citations and authorities + checklist — alongside the original client-side text download) |
 
 **Citations are built:** key facts and argument supporting-facts carry `Citation`
 (source document + page/paragraph) via the `CitedFact` schema. The extractor shows the
@@ -55,9 +55,9 @@ trick as the research rerank.
 
 ```
 backend/
-  pyproject.toml         deps (fastapi, uvicorn, pdfplumber, python-docx, pytesseract, pdf2image, openai, httpx, ...); dev: pytest
+  pyproject.toml         deps (fastapi, uvicorn, pdfplumber, python-docx, reportlab, pytesseract, pdf2image, openai, httpx, ...); dev: pytest
   .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL_CHEAP / _MID / _STRONG / OPENROUTER_BASE_URL / INDIANKANOON_API_TOKEN / DATABASE_URL / CORS_ORIGINS / RESEND_API_KEY / RESEND_FROM / APP_BASE_URL / GOOGLE_CLIENT_ID template
-  tests/                 pytest suite (conftest fakes Settings env, gives each test its own throwaway Postgres schema, and clears the rate limiter; LLM + email calls monkeypatched): analyze-route degradation, case-history save/read/ownership, DOCX export contents/scoping, rerank validation, citation resolution, guardrails (upload limits, chunk budget, rate limiting), password-reset flow (token single-use/expiry, session invalidation, no account enumeration), Google sign-in (find/link/create, verification mocked, verified-email + not-configured guards)
+  tests/                 pytest suite (conftest fakes Settings env, gives each test its own throwaway Postgres schema, and clears the rate limiter; LLM + email calls monkeypatched): analyze-route degradation, case-history save/read/ownership, DOCX + PDF export contents/scoping, rerank validation, citation resolution, guardrails (upload limits, chunk budget, rate limiting), password-reset flow (token single-use/expiry, session invalidation, no account enumeration), Google sign-in (find/link/create, verification mocked, verified-email + not-configured guards)
   app/
     config.py            Settings (pydantic-settings) with model_for_tier(tier) helper + upload/prompt/LLM/rate-limit guardrail values, loads .env
     main.py               FastAPI app, CORS (allowed origins from the CORS_ORIGINS setting — comma-separated, defaults to the Vite dev origin), content-length limit middleware, mounts router under /api; lifespan opens/closes the DB pool
@@ -79,8 +79,9 @@ backend/
     auth/routes.py             POST /api/auth/signup (name + email + password; name required, trimmed, max 80) | /login | /logout | /forgot-password | /reset-password | /google (verify ID token → find/link/create account → session), GET /api/auth/me (email + name + created_at), PATCH /api/auth/me (display name, trimmed, max 80); get_current_user dependency (Bearer token) — /api/analyze requires it
     email/client.py            send_password_reset_email(to, reset_url) via Resend (httpx); no key → link is logged instead of sent (dev)
     cases/store.py             save_case/list_cases/get_case/delete_case over the `cases` table (all scoped by user_id) + build_title() (parties → filenames fallback)
-    cases/routes.py            GET /api/cases | GET /api/cases/{id} | GET /api/cases/{id}/export.docx | DELETE /api/cases/{id} — case history for the logged-in user
-    export/docx_builder.py     build_hearing_pack(title, analysis) -> .docx bytes (python-docx, in memory) + export_filename() slug
+    cases/routes.py            GET /api/cases | GET /api/cases/{id} | GET /api/cases/{id}/export.docx | GET /api/cases/{id}/export.pdf | DELETE /api/cases/{id} — case history for the logged-in user
+    export/docx_builder.py     build_hearing_pack(title, analysis) -> .docx bytes (python-docx, in memory) + export_filename() slug + DISCLAIMER (shared with the PDF builder)
+    export/pdf_builder.py      build_hearing_pack_pdf(title, analysis) -> .pdf bytes (reportlab, in memory, pure-Python so no extra container deps) + export_filename_pdf() slug — same sections as the docx pack
 
 frontend/
   package.json, vite.config.ts, tsconfig.json, index.html (loads the Google Identity Services script), .env.example (VITE_API_BASE_URL / VITE_GOOGLE_CLIENT_ID template)
@@ -101,7 +102,7 @@ frontend/
       AppLayout.tsx          signed-in shell: left sidebar (logo + Analyze / Case history nav with active state) that closes via its × and reopens from the ☰ in the top bar — open/closed remembered in localStorage; top bar also holds the account menu. Wraps every authed page
       UserMenu.tsx           avatar button + dropdown (email, Profile, Sign out); closes on outside click or Escape
       Avatar.tsx             initials circle from the display name, falling back to the email (initialsFor())
-      AnalysisResult.tsx     result header (case type, parties, counts, Export as Word / Analyze another / Case history) + the six cards and their modals — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case)
+      AnalysisResult.tsx     result header (case type, parties, counts, Export as PDF / Export as Word / Analyze another / Case history) + the six cards and their modals — shared by AnalyzePage (fresh run) and CaseDetailPage (saved case). The two exports call downloadCaseExport(id, "pdf"|"docx")
       AppHeader.tsx          logged-in header: logo, Analyze / Case history nav, email, sign out
       Citations.tsx          renders a CitedFact's citations as (document, page/paragraph) badge chips
       Logo.tsx               site logo used in headers

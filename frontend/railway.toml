@@ -1,0 +1,11 @@
+# Railway service config for the PreHearing frontend.
+# In the Railway UI, set this service's Root Directory to `frontend` so this file and
+# the Dockerfile beside it are picked up.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
