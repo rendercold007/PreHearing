@@ -27,7 +27,7 @@ export function Logo() {
   return (
     <Link to="/" className="logo">
       <LogoMark />
-      <span className="logo-text">PreHearing</span>
+      <span className="logo-text">Casper</span>
     </Link>
   );
 }

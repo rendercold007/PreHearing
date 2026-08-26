@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     reset_pool()
 
 
-app = FastAPI(title="PreHearing", lifespan=lifespan)
+app = FastAPI(title="Casper", lifespan=lifespan)
 
 
 @app.middleware("http")

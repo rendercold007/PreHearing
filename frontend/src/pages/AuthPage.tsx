@@ -154,7 +154,7 @@ export function AuthPage({ mode }: AuthPageProps) {
                             </>
                         ) : (
                             <>
-                                New to PreHearing?{" "}
+                                New to Casper?{" "}
                                 <Link to="/signup" state={{ from }}>Create an account</Link>
                             </>
                         )}

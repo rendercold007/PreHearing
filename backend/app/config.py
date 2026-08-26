@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # Password-reset email via Resend (https://resend.com). Without an API key the reset
     # flow still works but logs the reset link instead of emailing it — a dev convenience.
     resend_api_key: str = ""
-    resend_from: str = "PreHearing <onboarding@resend.dev>"
+    resend_from: str = "Casper <onboarding@resend.dev>"
 
     # Frontend base URL, used to build the reset link in the email. Same origin the user
     # loads the app from (the /reset-password route lives there).

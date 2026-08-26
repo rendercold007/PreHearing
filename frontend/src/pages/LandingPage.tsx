@@ -159,7 +159,7 @@ const FAQS = [
   {
     question: "Is this legal advice?",
     answer:
-      "No. PreHearing is a preparation tool for lawyers. Everything it produces is a draft for a qualified lawyer to review, verify, and own.",
+      "No. Casper is a preparation tool for lawyers. Everything it produces is a draft for a qualified lawyer to review, verify, and own.",
   },
 ];
 
@@ -288,7 +288,7 @@ export function LandingPage() {
       </section>
 
       <section className="landing-section">
-        <h2>Why PreHearing</h2>
+        <h2>Why Casper</h2>
         <div className="feature-grid">
           {FEATURES.map((feature) => (
             <div key={feature.title} className="feature-card">
@@ -359,10 +359,10 @@ export function LandingPage() {
         <div className="footer-inner">
           <Logo />
           <p className="footer-disclaimer">
-            PreHearing is a preparation tool, not a law firm, and its output is not legal advice.
+            Casper is a preparation tool, not a law firm, and its output is not legal advice.
             All results should be reviewed and verified by a qualified lawyer.
           </p>
-          <p className="footer-copy">© {new Date().getFullYear()} PreHearing</p>
+          <p className="footer-copy">© {new Date().getFullYear()} Casper</p>
         </div>
       </footer>
     </main>

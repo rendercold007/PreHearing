@@ -29,9 +29,9 @@ def _send(to: str, subject: str, html: str) -> None:
 
 def send_password_reset_email(to: str, reset_url: str) -> None:
     settings = get_settings()
-    subject = "Reset your PreHearing password"
+    subject = "Reset your Casper password"
     html = (
-        "<p>We received a request to reset your PreHearing password.</p>"
+        "<p>We received a request to reset your Casper password.</p>"
         f'<p><a href="{reset_url}">Choose a new password</a>. '
         f"This link expires in {settings.password_reset_ttl_minutes} minutes.</p>"
         "<p>If you didn't request this, you can safely ignore this email.</p>"

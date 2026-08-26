@@ -1,4 +1,4 @@
-# Railway service config for the PreHearing backend.
+# Railway service config for the Casper backend.
 # In the Railway UI, set this service's Root Directory to `backend` so this file and
 # the Dockerfile beside it are picked up.
 

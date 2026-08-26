@@ -1,8 +1,13 @@
-# PreHearing
+# Casper
+
+> Formerly "PreHearing" (demo name). The Postgres role/db (`prehearing`), Python/npm
+> package names, and browser `localStorage` keys / the `prehearing:session-cleared`
+> event still use the old slug on purpose — they are internal identifiers, and renaming
+> them would mean recreating the DB or dropping live sessions for no user-facing gain.
 
 ## What this project is
 
-PreHearing takes a lawyer's case file(s) and produces arguments for a hearing.
+Casper takes a lawyer's case file(s) and produces arguments for a hearing.
 
 The target shape is a 7-stage pipeline. All seven stages exist in a first form; the
 per-stage notes say what each one still lacks:
