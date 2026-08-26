@@ -9,6 +9,7 @@ from psycopg.errors import UniqueViolation
 from pydantic import BaseModel, Field, field_validator
 
 from app.auth.db import get_connection
+from app.auth.google import verify_google_token
 from app.auth.ratelimit import check_rate_limit, client_key
 from app.auth.security import (
     hash_password,
@@ -90,6 +91,10 @@ class ResetPasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str = Field(min_length=1)  # the Google ID token from the browser
 
 
 @dataclass
@@ -187,7 +192,12 @@ def login(credentials: Credentials, request: Request) -> AuthResponse:
             (credentials.email,),
         ).fetchone()
 
-        if row is None or not verify_password(credentials.password, row["password_hash"]):
+        # password_hash is null for Google-only accounts — they can't log in this way.
+        if (
+            row is None
+            or row["password_hash"] is None
+            or not verify_password(credentials.password, row["password_hash"])
+        ):
             raise HTTPException(status_code=401, detail="Incorrect email or password.")
 
         token = _create_session(conn, row["id"])
@@ -286,3 +296,59 @@ def reset_password(payload: ResetPasswordRequest, request: Request) -> MessageRe
         conn.execute("DELETE FROM sessions WHERE user_id = %s", (row["user_id"],))
 
     return MessageResponse(message="Your password has been reset. You can now sign in.")
+
+
+@router.post("/google", response_model=AuthResponse)
+def google_auth(payload: GoogleAuthRequest, request: Request) -> AuthResponse:
+    """Sign in (or sign up) with a Google ID token. Verifies the token, then finds or
+    creates the matching account and issues a normal session — same shape as login."""
+    _throttle_auth(request, "google")
+    settings = get_settings()
+    if not settings.google_client_id:
+        raise HTTPException(status_code=503, detail="Google sign-in is not configured.")
+
+    try:
+        claims = verify_google_token(payload.credential, settings.google_client_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Could not verify your Google sign-in."
+        ) from None
+
+    email = (claims.get("email") or "").strip().lower()
+    if not email or not claims.get("email_verified"):
+        raise HTTPException(
+            status_code=401, detail="Your Google account has no verified email address."
+        )
+    google_sub = claims["sub"]
+    name = (claims.get("name") or "").strip()[:80]
+
+    with get_connection() as conn:
+        user = conn.execute(
+            "SELECT id, email FROM users WHERE google_sub = %s", (google_sub,)
+        ).fetchone()
+
+        if user is not None:
+            user_id, email = user["id"], user["email"]
+        else:
+            # No account linked to this Google id yet. If the (verified) email already has
+            # an account, link Google to it; otherwise create a fresh, passwordless one.
+            existing = conn.execute(
+                "SELECT id FROM users WHERE email = %s", (email,)
+            ).fetchone()
+            if existing is not None:
+                conn.execute(
+                    "UPDATE users SET google_sub = %s WHERE id = %s",
+                    (google_sub, existing["id"]),
+                )
+                user_id = existing["id"]
+            else:
+                created = conn.execute(
+                    "INSERT INTO users (email, google_sub, name) VALUES (%s, %s, %s)"
+                    " RETURNING id",
+                    (email, google_sub, name),
+                ).fetchone()
+                user_id = created["id"]
+
+        token = _create_session(conn, user_id)
+
+    return AuthResponse(token=token, email=email)

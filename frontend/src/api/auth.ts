@@ -67,6 +67,11 @@ export function login(email: string, password: string): Promise<AuthSession> {
     return authRequest("login", { email, password });
 }
 
+/** Exchange a Google ID token (from Google Identity Services) for a session. */
+export function googleAuth(credential: string): Promise<AuthSession> {
+    return authRequest("google", { credential });
+}
+
 export interface MessageResponse {
     message: string;
 }

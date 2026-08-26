@@ -9,8 +9,9 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
     name TEXT NOT NULL DEFAULT '',
+    google_sub TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -57,6 +58,12 @@ CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_i
 -- Columns added after the tables first shipped. ADD COLUMN IF NOT EXISTS is a no-op
 -- on a database that already has them, and creates them on one that predates them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT;
+-- Google-only accounts have no password. Drop the old NOT NULL (no-op if already gone).
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+-- google_sub is the stable Google user id; unique among the accounts that have one.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub
+    ON users(google_sub) WHERE google_sub IS NOT NULL;
 """
 
 _pool: ConnectionPool | None = None

@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # How long a password-reset link stays valid.
     password_reset_ttl_minutes: int = 60
 
+    # Google Sign-In (OAuth client ID, "Web application" type). Empty = feature off:
+    # the /api/auth/google endpoint 503s and the frontend hides the Google button.
+    google_client_id: str = ""
+
     # Upload guardrails. Without these a single request can read an unbounded number
     # of bytes into memory before anything else runs.
     max_files: int = 20

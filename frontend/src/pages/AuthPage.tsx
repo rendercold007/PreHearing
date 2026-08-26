@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { useAuth } from "../auth/AuthContext";
 
 interface AuthPageProps {
@@ -136,6 +137,8 @@ export function AuthPage({ mode }: AuthPageProps) {
                                   : "Log in"}
                         </button>
                     </form>
+
+                    <GoogleSignInButton />
 
                     {!isSignup && (
                         <p className="auth-switch">

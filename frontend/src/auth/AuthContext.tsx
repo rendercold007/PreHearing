@@ -3,6 +3,7 @@ import {
     SESSION_CLEARED_EVENT,
     clearSession,
     getStoredSession,
+    googleAuth as apiGoogleAuth,
     loadSessionProfile,
     login as apiLogin,
     logout as apiLogout,
@@ -17,6 +18,7 @@ interface AuthContextValue {
     checking: boolean;
     login: (email: string, password: string) => Promise<void>;
     signup: (name: string, email: string, password: string) => Promise<void>;
+    loginWithGoogle: (credential: string) => Promise<void>;
     logout: () => void;
     /** Called after the profile page saves, so the header avatar updates immediately. */
     setName: (name: string) => void;
@@ -80,6 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setName(userName);
     }
 
+    async function loginWithGoogle(credential: string) {
+        const session = await apiGoogleAuth(credential);
+        storeSession(session);
+        setEmail(session.email);
+        await loadName(session.token);
+    }
+
     function logout() {
         const session = getStoredSession();
         if (session) void apiLogout(session.token);
@@ -97,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 checking,
                 login,
                 signup,
+                loginWithGoogle,
                 logout,
                 setName,
             }}
