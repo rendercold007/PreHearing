@@ -29,9 +29,10 @@ def fake_settings(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def clear_rate_limits():
-    """The limiter's window is process-global, so one test's requests would otherwise
-    count against the next one's allowance."""
+def clear_rate_limits(temp_db):
+    """Clear the limiter between tests. Depends on temp_db so the schema and pool exist
+    before reset() touches the rate_limit_hits table (and so its teardown runs first,
+    while they still exist)."""
     from app.auth import ratelimit
 
     ratelimit.reset()

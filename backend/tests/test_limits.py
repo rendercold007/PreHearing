@@ -169,3 +169,17 @@ def test_limiter_window_expires():
         ratelimit.check_rate_limit("k", limit=1, window_seconds=60)
     # a zero-length window means every previous hit is already outside it
     ratelimit.check_rate_limit("k", limit=1, window_seconds=0)
+
+
+def test_limiter_state_survives_a_pool_reset():
+    """The point of the Postgres backing: a hit recorded before a worker restart (here,
+    a pool rebuild) still counts afterwards. An in-memory limiter would forget it."""
+    from app.auth import db
+
+    ratelimit.reset()
+    ratelimit.check_rate_limit("shared", limit=1, window_seconds=60)
+
+    db.reset_pool()  # stand-in for a fresh worker with its own connections
+
+    with pytest.raises(Exception):
+        ratelimit.check_rate_limit("shared", limit=1, window_seconds=60)

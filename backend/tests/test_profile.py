@@ -121,7 +121,9 @@ def test_migration_adds_name_to_an_existing_database(monkeypatch):
             " VALUES ('old@example.com', 'x')"
         )
 
-    # Re-point the pool at the legacy schema and run the schema setup over it.
+    # Re-point the pool at the legacy schema and run the schema setup over it, then put
+    # it back so the fixtures' own teardown still has a live schema to work against.
+    prev_pgoptions = os.environ.get("PGOPTIONS")
     monkeypatch.setenv("PGOPTIONS", f"-c search_path={schema}")
     db.reset_pool()
     db.init_db()
@@ -133,3 +135,9 @@ def test_migration_adds_name_to_an_existing_database(monkeypatch):
     db.reset_pool()
     with psycopg.connect(base_dsn, autocommit=True) as admin:
         admin.execute(f'DROP SCHEMA "{schema}" CASCADE')
+
+    if prev_pgoptions is not None:
+        monkeypatch.setenv("PGOPTIONS", prev_pgoptions)
+    else:
+        monkeypatch.delenv("PGOPTIONS", raising=False)
+    db.reset_pool()

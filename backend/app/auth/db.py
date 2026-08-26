@@ -32,6 +32,17 @@ CREATE TABLE IF NOT EXISTS cases (
 
 CREATE INDEX IF NOT EXISTS idx_cases_user ON cases(user_id, id DESC);
 
+-- Sliding-window rate limiter: one row per request hit. Shared across workers so the
+-- configured allowance is enforced once, not once per process. Pruned per-bucket on
+-- each check and swept globally on a timer (see auth/ratelimit.py).
+CREATE TABLE IF NOT EXISTS rate_limit_hits (
+    bucket TEXT NOT NULL,
+    hit_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_bucket ON rate_limit_hits(bucket, hit_at);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_hit_at ON rate_limit_hits(hit_at);
+
 -- Columns added after the tables first shipped. ADD COLUMN IF NOT EXISTS is a no-op
 -- on a database that already has them, and creates them on one that predates them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
