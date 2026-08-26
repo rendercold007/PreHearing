@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # fresh checkout runs against `docker compose up` with no extra configuration.
     database_url: str = "postgresql://prehearing:prehearing@localhost:5432/prehearing"
 
+    # Browser origins allowed to call the API (CORS), comma-separated. Defaults to the
+    # local Vite dev server; set to the deployed frontend's origin(s) in production.
+    cors_origins: str = "http://localhost:5173"
+
     # Upload guardrails. Without these a single request can read an unbounded number
     # of bytes into memory before anything else runs.
     max_files: int = 20
@@ -41,6 +45,10 @@ class Settings(BaseSettings):
     auth_rate_window_seconds: int = 60
     analyze_rate_limit: int = 5
     analyze_rate_window_seconds: int = 3600
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def max_file_bytes(self) -> int:

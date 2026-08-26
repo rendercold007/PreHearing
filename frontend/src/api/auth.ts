@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000/api";
+import { API_BASE_URL } from "./config";
 
 const TOKEN_KEY = "prehearing_token";
 const EMAIL_KEY = "prehearing_email";

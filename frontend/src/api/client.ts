@@ -1,7 +1,6 @@
 import type { CaseAnalysis } from "../types";
 import { clearSession, getStoredSession } from "./auth";
-
-const API_BASE_URL = "http://localhost:8000/api";
+import { API_BASE_URL } from "./config";
 
 export interface StageEvent {
     stage: string;

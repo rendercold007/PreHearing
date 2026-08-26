@@ -54,11 +54,11 @@ trick as the research rerank.
 ```
 backend/
   pyproject.toml         deps (fastapi, uvicorn, pdfplumber, python-docx, pytesseract, pdf2image, openai, httpx, ...); dev: pytest
-  .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL_CHEAP / _MID / _STRONG / OPENROUTER_BASE_URL / INDIANKANOON_API_TOKEN template
+  .env.example           OPENROUTER_API_KEY / OPENROUTER_MODEL_CHEAP / _MID / _STRONG / OPENROUTER_BASE_URL / INDIANKANOON_API_TOKEN / DATABASE_URL / CORS_ORIGINS template
   tests/                 pytest suite (conftest fakes Settings env, points the DB at a per-test tmp file, and clears the rate limiter; LLM calls monkeypatched): analyze-route degradation, case-history save/read/ownership, DOCX export contents/scoping, rerank validation, citation resolution, guardrails (upload limits, chunk budget, rate limiting)
   app/
     config.py            Settings (pydantic-settings) with model_for_tier(tier) helper + upload/prompt/LLM/rate-limit guardrail values, loads .env
-    main.py               FastAPI app, CORS, content-length limit middleware, mounts router under /api
+    main.py               FastAPI app, CORS (allowed origins from the CORS_ORIGINS setting — comma-separated, defaults to the Vite dev origin), content-length limit middleware, mounts router under /api; lifespan opens/closes the DB pool
     api/routes.py         POST /api/analyze — accepts multiple files, streams NDJSON stage events + final result; run_stage() catches per-stage failures into warnings; stages run off the event loop, research passes concurrent; saves the finished analysis to case history and reports its case_id
     ingest/parser.py      DocumentChunk dataclass; parse_documents() — multi-file → per-page/paragraph chunks, deduped by content hash; OCR fallback per page; budget_chunks() trims the listing to what one extractor prompt can carry
     models/schemas.py     Party, Citation, CitedFact, CaseUnderstanding, Issue, Argument, StressTestPoint, OutlinePoint, ChecklistItem, HearingPrep, Authority, IssueResearch, CaseAnalysis (Pydantic)
@@ -79,11 +79,12 @@ backend/
     export/docx_builder.py     build_hearing_pack(title, analysis) -> .docx bytes (python-docx, in memory) + export_filename() slug
 
 frontend/
-  package.json, vite.config.ts, tsconfig.json, index.html
+  package.json, vite.config.ts, tsconfig.json, index.html, .env.example (VITE_API_BASE_URL template)
   src/
     main.tsx              entry point, wraps App in BrowserRouter, imports index.css
     index.css             premium dark/gold theme — cards, modal, hero/landing sections, buttons, alert
     App.tsx                Routes: "/" -> LandingPage, "/login" & "/signup" -> AuthPage, "/app" -> AnalyzePage, "/cases" -> CasesPage, "/cases/:caseId" -> CaseDetailPage, "/profile" -> ProfilePage (last four wrapped in RequireAuth); all inside AuthProvider
+    api/config.ts          API_BASE_URL — single source of truth for the backend base URL, from VITE_API_BASE_URL (defaults to http://localhost:8000/api); imported by the three api/* modules
     api/client.ts          analyzeCaseFiles(files, onStage?) — POSTs files to /api/analyze, reads the NDJSON stream, fires onStage per progress event, returns the final analysis; clears session on 401
     api/auth.ts            signup/login/logout/fetchProfile/updateName/loadSessionProfile (null on 401) + localStorage session helpers
     api/cases.ts           listCases/getCase/deleteCase/downloadCaseExport against /api/cases (Bearer + 401 handling) + formatSavedAt() for the UTC timestamps

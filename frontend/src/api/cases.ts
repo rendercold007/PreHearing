@@ -1,7 +1,6 @@
 import type { CaseDetail, CaseSummary } from "../types";
 import { clearSession, getStoredSession } from "./auth";
-
-const API_BASE_URL = "http://localhost:8000/api";
+import { API_BASE_URL } from "./config";
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
     const session = getStoredSession();
