@@ -24,6 +24,18 @@ class Settings(BaseSettings):
     # local Vite dev server; set to the deployed frontend's origin(s) in production.
     cors_origins: str = "http://localhost:5173"
 
+    # Password-reset email via Resend (https://resend.com). Without an API key the reset
+    # flow still works but logs the reset link instead of emailing it — a dev convenience.
+    resend_api_key: str = ""
+    resend_from: str = "PreHearing <onboarding@resend.dev>"
+
+    # Frontend base URL, used to build the reset link in the email. Same origin the user
+    # loads the app from (the /reset-password route lives there).
+    app_base_url: str = "http://localhost:5173"
+
+    # How long a password-reset link stays valid.
+    password_reset_ttl_minutes: int = 60
+
     # Upload guardrails. Without these a single request can read an unbounded number
     # of bytes into memory before anything else runs.
     max_files: int = 20

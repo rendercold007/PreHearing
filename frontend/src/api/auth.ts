@@ -67,6 +67,44 @@ export function login(email: string, password: string): Promise<AuthSession> {
     return authRequest("login", { email, password });
 }
 
+export interface MessageResponse {
+    message: string;
+}
+
+async function messageRequest(
+    path: string,
+    body: Record<string, string>,
+): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const detail = errorBody?.detail;
+        const message =
+            typeof detail === "string"
+                ? detail
+                : Array.isArray(detail)
+                  ? detail[0]?.msg ?? "Request failed."
+                  : `Request failed with status ${response.status}`;
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+/** Always resolves with the same generic message whether or not the email is known. */
+export function requestPasswordReset(email: string): Promise<MessageResponse> {
+    return messageRequest("forgot-password", { email });
+}
+
+export function resetPassword(token: string, password: string): Promise<MessageResponse> {
+    return messageRequest("reset-password", { token, password });
+}
+
 export interface AccountProfile {
     email: string;
     name: string;

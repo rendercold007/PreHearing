@@ -12,7 +12,9 @@ export function AuthPage({ mode }: AuthPageProps) {
     const { login, signup } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const from = (location.state as { from?: string } | null)?.from ?? "/app";
+    const locationState = location.state as { from?: string; notice?: string } | null;
+    const from = locationState?.from ?? "/app";
+    const notice = locationState?.notice;
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -64,6 +66,10 @@ export function AuthPage({ mode }: AuthPageProps) {
                             ? "Sign up to start analyzing your case files."
                             : "Log in to continue to your case analysis."}
                     </p>
+
+                    {!isSignup && notice && (
+                        <p className="auth-notice" role="status">{notice}</p>
+                    )}
 
                     <form className="auth-form" onSubmit={handleSubmit}>
                         {isSignup && (
@@ -130,6 +136,12 @@ export function AuthPage({ mode }: AuthPageProps) {
                                   : "Log in"}
                         </button>
                     </form>
+
+                    {!isSignup && (
+                        <p className="auth-switch">
+                            <Link to="/forgot-password">Forgot your password?</Link>
+                        </p>
+                    )}
 
                     <p className="auth-switch">
                         {isSignup ? (

@@ -43,6 +43,17 @@ CREATE TABLE IF NOT EXISTS rate_limit_hits (
 CREATE INDEX IF NOT EXISTS idx_rate_limit_bucket ON rate_limit_hits(bucket, hit_at);
 CREATE INDEX IF NOT EXISTS idx_rate_limit_hit_at ON rate_limit_hits(hit_at);
 
+-- Password-reset tokens. Only a SHA-256 hash of the token is stored (the raw token
+-- lives only in the emailed link), single-use (used_at) and expiring (expires_at).
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
+
 -- Columns added after the tables first shipped. ADD COLUMN IF NOT EXISTS is a no-op
 -- on a database that already has them, and creates them on one that predates them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';

@@ -29,3 +29,15 @@ def verify_password(password: str, stored: str) -> bool:
 
 def new_session_token() -> str:
     return secrets.token_urlsafe(32)
+
+
+def new_reset_token() -> str:
+    """A high-entropy password-reset token. The raw value goes only into the emailed
+    link; the database stores its hash (see hash_token)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_token(token: str) -> str:
+    """SHA-256 of a reset token, used both to store it and to look it up. Hashing at
+    rest means a leaked reset_tokens row can't be turned back into a working link."""
+    return hashlib.sha256(token.encode()).hexdigest()

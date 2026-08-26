@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -9,8 +10,17 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.auth.db import get_connection
 from app.auth.ratelimit import check_rate_limit, client_key
-from app.auth.security import hash_password, new_session_token, verify_password
+from app.auth.security import (
+    hash_password,
+    hash_token,
+    new_reset_token,
+    new_session_token,
+    verify_password,
+)
 from app.config import get_settings
+from app.email.client import send_password_reset_email
+
+logger = logging.getLogger(__name__)
 
 SESSION_LIFETIME = timedelta(days=7)
 
@@ -62,6 +72,24 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def clean_name(cls, value: str) -> str:
         return value.strip()
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 @dataclass
@@ -184,3 +212,77 @@ def update_me(
 def logout(user: CurrentUser = Depends(get_current_user)) -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM sessions WHERE token = %s", (user.token,))
+
+
+_GENERIC_RESET_MESSAGE = "If an account exists for that email, a reset link has been sent."
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(payload: ForgotPasswordRequest, request: Request) -> MessageResponse:
+    # Always return the same message whether or not the email matches an account, so this
+    # endpoint can't be used to enumerate who has signed up.
+    _throttle_auth(request, "forgot-password")
+    settings = get_settings()
+
+    reset_url: str | None = None
+    with get_connection() as conn:
+        user = conn.execute(
+            "SELECT id FROM users WHERE email = %s", (payload.email,)
+        ).fetchone()
+        if user is not None:
+            # Supersede any earlier link for this user so only the newest one works.
+            conn.execute(
+                "DELETE FROM password_reset_tokens WHERE user_id = %s", (user["id"],)
+            )
+            token = new_reset_token()
+            expires_at = datetime.now(timezone.utc) + timedelta(
+                minutes=settings.password_reset_ttl_minutes
+            )
+            conn.execute(
+                "INSERT INTO password_reset_tokens (token_hash, user_id, expires_at)"
+                " VALUES (%s, %s, %s)",
+                (hash_token(token), user["id"], expires_at),
+            )
+            reset_url = f"{settings.app_base_url.rstrip('/')}/reset-password?token={token}"
+
+    # Send after the transaction so a slow email call never holds a DB connection. A send
+    # failure is logged, not surfaced — telling the caller would also leak account existence.
+    if reset_url is not None:
+        try:
+            send_password_reset_email(payload.email, reset_url)
+        except Exception:
+            logger.exception("Failed to send password reset email")
+
+    return MessageResponse(message=_GENERIC_RESET_MESSAGE)
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest, request: Request) -> MessageResponse:
+    _throttle_auth(request, "reset-password")
+    now = datetime.now(timezone.utc)
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT token_hash, user_id, expires_at, used_at"
+            " FROM password_reset_tokens WHERE token_hash = %s",
+            (hash_token(payload.token),),
+        ).fetchone()
+
+        if row is None or row["used_at"] is not None or row["expires_at"] < now:
+            raise HTTPException(
+                status_code=400, detail="This reset link is invalid or has expired."
+            )
+
+        conn.execute(
+            "UPDATE users SET password_hash = %s WHERE id = %s",
+            (hash_password(payload.password), row["user_id"]),
+        )
+        conn.execute(
+            "UPDATE password_reset_tokens SET used_at = %s WHERE token_hash = %s",
+            (now, row["token_hash"]),
+        )
+        # Invalidate every active session so a resettee (or an attacker who prompted the
+        # reset) is forced to sign in again everywhere with the new password.
+        conn.execute("DELETE FROM sessions WHERE user_id = %s", (row["user_id"],))
+
+    return MessageResponse(message="Your password has been reset. You can now sign in.")
