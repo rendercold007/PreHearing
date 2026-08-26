@@ -119,12 +119,12 @@ def test_case_saved_before_adverse_research_existed_still_loads(client_for, user
     analysis_json = json.loads(make_analysis().model_dump_json())
     del analysis_json["adverse_research"]
     with db.get_connection() as conn:
-        cursor = conn.execute(
+        row = conn.execute(
             "INSERT INTO cases (user_id, title, filenames, warning_count, analysis) "
-            "VALUES (?, 'Old case', '[\"case.pdf\"]', 0, ?)",
+            "VALUES (%s, 'Old case', '[\"case.pdf\"]', 0, %s) RETURNING id",
             (user_id, json.dumps(analysis_json)),
-        )
-        case_id = cursor.lastrowid
+        ).fetchone()
+        case_id = row["id"]
 
     body = client_for(user_id).get(f"/api/cases/{case_id}").json()
     assert body["analysis"]["adverse_research"] == []

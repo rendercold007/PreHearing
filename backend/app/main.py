@@ -1,16 +1,26 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import router
-from app.auth.db import init_db
+from app.auth.db import init_db, reset_pool
 from app.auth.routes import router as auth_router
 from app.cases.routes import router as cases_router
 from app.config import get_settings
 
-app = FastAPI(title="PreHearing")
 
-init_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Open the pool and ensure the schema exists before serving requests; close the
+    # pool cleanly on shutdown so connections are returned to Postgres.
+    init_db()
+    yield
+    reset_pool()
+
+
+app = FastAPI(title="PreHearing", lifespan=lifespan)
 
 
 @app.middleware("http")

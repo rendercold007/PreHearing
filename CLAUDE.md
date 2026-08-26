@@ -46,8 +46,8 @@ trick as the research rerank.
 - **Graceful degradation:** if Understand fails the request 502s; any later stage failing is caught (`run_stage` in `api/routes.py`), logged, and reported in a `warnings` list on the response while the rest of the analysis still returns. The stage's live event is also emitted as `"failed"` so the progress checklist doesn't draw a crashed stage as a success. `hearing_prep` is nullable for this reason.
 - **Anti-hallucination pattern (used throughout):** the LLM only ever *selects by number* from a server-side list — rerank picks search hits by index, the extractor cites facts by chunk number, the generator cites supporting facts and authorities by number, the stress-tester attaches adverse authorities by number — and invalid indices are dropped in code (`select_by_number` / `flatten_authorities` in `research/researcher.py`), so citations/authorities can't be invented.
 - **Frontend:** React + Vite + TypeScript, calling the FastAPI backend as a JSON API. Client-side routed (`react-router-dom`): `/` is a marketing landing page, `/app` is the upload → analyze flow, `/cases` is the saved case history and `/cases/:caseId` reopens one (both auth-gated). A fresh run and a saved case render through the same `AnalysisResult` component, so history is a full second view of the analysis, not a summary. Upload supports multiple files at once; results (understanding, issues, arguments, stress test, prepare) render as a hovering card grid — each card previews its section and opens the full detail in a modal.
-- **Auth:** name + email + password accounts (signup collects all three; the name is required and editable later on /profile) with opaque Bearer session tokens (7-day expiry), stored in SQLite (`backend/prehearing.db`, created automatically, gitignored). Passwords hashed with stdlib pbkdf2_sha256 — no extra dependencies. `/api/analyze` requires a valid token; the frontend keeps the session in localStorage and gates `/app` behind `/login`. When any API call gets a 401 it calls `clearSession()`, which dispatches a `prehearing:session-cleared` window event — `AuthProvider` listens for it and drops the in-memory session, so an expired token actually redirects to `/login` instead of leaving the app believing it is still signed in.
-- **Persistence:** SQLite (`backend/prehearing.db`) holds users, sessions, and **case history**. Every successful `/api/analyze` run is saved for the user who ran it (`cases` table: title, filenames, warning count, the full `CaseAnalysis` as JSON) and the final result event carries its `case_id`. Saving is best-effort — a failure there adds a warning rather than costing the user the analysis they just waited for. Read back via `GET /api/cases` (summaries, newest first), `GET /api/cases/{id}` (summary + full analysis), `DELETE /api/cases/{id}`; every query is scoped by `user_id`, so one account can never read another's case. The analysis JSON is stored as one blob — nothing queries inside it.
+- **Auth:** name + email + password accounts (signup collects all three; the name is required and editable later on /profile) with opaque Bearer session tokens (7-day expiry), stored in Postgres (see Persistence). Passwords hashed with stdlib pbkdf2_sha256 — no extra dependencies. `/api/analyze` requires a valid token; the frontend keeps the session in localStorage and gates `/app` behind `/login`. When any API call gets a 401 it calls `clearSession()`, which dispatches a `prehearing:session-cleared` window event — `AuthProvider` listens for it and drops the in-memory session, so an expired token actually redirects to `/login` instead of leaving the app believing it is still signed in.
+- **Persistence:** Postgres holds users, sessions, and **case history**. Connection string via the `DATABASE_URL` env var (defaults to the `docker-compose.yml` service at `localhost:5432`); access goes through a process-wide `psycopg_pool.ConnectionPool` (psycopg 3), opened at startup and closed on shutdown by the app's `lifespan` — pooling is what makes it safe under multiple workers, and returning connections to the pool on context exit is also what closed the old per-request connection leak. Schema is lean idempotent DDL (`CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) run by `init_db()` at startup — no migration files/tool. Every successful `/api/analyze` run is saved for the user who ran it (`cases` table: title, filenames, warning count, the full `CaseAnalysis` as JSON) and the final result event carries its `case_id`. Saving is best-effort — a failure there adds a warning rather than costing the user the analysis they just waited for. Read back via `GET /api/cases` (summaries, newest first), `GET /api/cases/{id}` (summary + full analysis), `DELETE /api/cases/{id}`; every query is scoped by `user_id`, so one account can never read another's case. The analysis JSON is stored as one blob — nothing queries inside it. Timestamps are `timestamptz`, but the API renders `created_at` as the string `"YYYY-MM-DD HH:MM:SS"` (UTC) so the frontend contract is unchanged.
 
 ## Project structure
 
@@ -70,7 +70,7 @@ backend/
     arguments/generator.py    generate_arguments(understanding, issues, model) -> list[Argument] (supporting facts selected by validated fact number; carries counter_argument + rebuttal)
     stresstest/tester.py       stress_test(understanding, issues, arguments, adverse_research, model) -> list[StressTestPoint] (adverse authorities attached by validated number)
     prepare/assembler.py       assemble_hearing_prep(understanding, issues, arguments, stress_test, model) -> HearingPrep
-    auth/db.py                 SQLite (backend/prehearing.db, gitignored): users (incl. display name, set at signup) + sessions + cases tables, init_db() called at startup — also ALTERs in columns added after a DB was created
+    auth/db.py                 Postgres (psycopg 3) connection pool + schema: users (incl. display name, set at signup) + sessions + cases tables. get_pool()/get_connection()/init_db()/reset_pool(); DDL is idempotent (CREATE/ALTER ... IF NOT EXISTS), run at startup, incl. columns added after a DB was created
     auth/security.py           pbkdf2_sha256 password hashing + session-token generation (stdlib only, no extra deps)
     auth/ratelimit.py          in-process sliding-window rate limiter (429 + Retry-After); reset() is the test hook
     auth/routes.py             POST /api/auth/signup (name + email + password; name required, trimmed, max 80) | /login | /logout, GET /api/auth/me (email + name + created_at), PATCH /api/auth/me (display name, trimmed, max 80); get_current_user dependency (Bearer token) — /api/analyze requires it
@@ -126,12 +126,16 @@ To run it:
 # system deps for OCR (one-time, needs sudo)
 sudo apt-get update && sudo apt-get install -y tesseract-ocr   # poppler-utils usually already present
 
+# Postgres (from the repo root) — the backend's DATABASE_URL default points here
+docker compose up -d
+
 # backend
 cd backend
 cp .env.example .env   # fill in OPENROUTER_API_KEY, OPENROUTER_MODEL_CHEAP/MID/STRONG,
-                       # and INDIANKANOON_API_TOKEN (optional — Research stage skipped without it)
+                       # INDIANKANOON_API_TOKEN (optional — Research stage skipped without it),
+                       # and DATABASE_URL (defaults to the docker-compose Postgres)
 uv sync
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload   # init_db() creates the schema on startup
 
 # frontend (separate terminal)
 cd frontend
@@ -144,8 +148,10 @@ Known-good model note: DeepSeek V4 Flash did not reliably follow the JSON-mode s
 Tests: `backend/tests/` (pytest, `uv run pytest`) covers the analyze route's graceful
 degradation, case-history persistence and per-user scoping, the DOCX export, the research
 rerank index-validation, and citation resolution in the
-extractor/generator. LLM calls are monkeypatched — the suite runs in under a second with
-no network or API key.
+extractor/generator. LLM calls are monkeypatched — no network or API key needed — but the
+suite now needs a running **Postgres** (`docker compose up -d`, or point `TEST_DATABASE_URL`
+at another database): each test gets its own throwaway schema, created and dropped by the
+`temp_db` fixture in `conftest.py`.
 
 Not yet done: deployment setup; parser/LLM-client/auth unit tests (deliberately skipped
 as low-churn).

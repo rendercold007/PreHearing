@@ -1,0 +1,27 @@
+# Local Postgres for PreHearing.
+#
+#   docker compose up -d          # start Postgres in the background
+#   docker compose down           # stop it (data is kept in the named volume)
+#   docker compose down -v        # stop it and wipe the data
+#
+# The backend reads DATABASE_URL (see backend/.env.example); the default there points
+# at this service. init_db() creates the schema on first startup — no manual step.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: prehearing
+      POSTGRES_PASSWORD: prehearing
+      POSTGRES_DB: prehearing
+    ports:
+      - "5432:5432"
+    volumes:
+      - prehearing_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prehearing -d prehearing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  prehearing_pgdata:

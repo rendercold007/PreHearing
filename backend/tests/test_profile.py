@@ -70,23 +70,23 @@ def test_absurdly_long_name_is_rejected(client, auth_headers):
 
 def test_expired_session_is_rejected_and_deleted(client, auth_headers):
     """The 401 is the visible half. The delete is the half that silently regressed:
-    sqlite3's context manager rolls back when the block raises, so an uncommitted
-    delete followed by `raise HTTPException` never actually removes the row."""
+    the connection's context manager rolls back when the block raises, so an
+    uncommitted delete followed by `raise HTTPException` never removes the row."""
     from datetime import datetime, timedelta, timezone
 
     from app.auth import db
 
     token = auth_headers["Authorization"].removeprefix("Bearer ")
-    past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    past = datetime.now(timezone.utc) - timedelta(days=1)
     with db.get_connection() as conn:
-        conn.execute("UPDATE sessions SET expires_at = ? WHERE token = ?", (past, token))
+        conn.execute("UPDATE sessions SET expires_at = %s WHERE token = %s", (past, token))
 
     assert client.get("/api/auth/me", headers=auth_headers).status_code == 401
 
     with db.get_connection() as conn:
         remaining = conn.execute(
-            "SELECT count(*) FROM sessions WHERE token = ?", (token,)
-        ).fetchone()[0]
+            "SELECT count(*) AS n FROM sessions WHERE token = %s", (token,)
+        ).fetchone()["n"]
     assert remaining == 0, "expired session row was not cleaned up"
 
 
@@ -95,31 +95,41 @@ def test_profile_requires_authentication(client):
     assert client.patch("/api/auth/me", json={"name": "Anon"}).status_code == 401
 
 
-def test_migration_adds_name_to_an_existing_database(monkeypatch, tmp_path):
-    """A database created before the name column existed still upgrades cleanly."""
-    import sqlite3
+def test_migration_adds_name_to_an_existing_database(monkeypatch):
+    """A database created before the name column existed still upgrades cleanly:
+    init_db()'s ALTER TABLE ... ADD COLUMN IF NOT EXISTS backfills it."""
+    import os
+    import uuid
+
+    import psycopg
 
     from app.auth import db
 
-    path = tmp_path / "legacy.db"
-    legacy = sqlite3.connect(path)
-    legacy.executescript(
-        """
-        CREATE TABLE users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-        INSERT INTO users (email, password_hash) VALUES ('old@example.com', 'x');
-        """
-    )
-    legacy.commit()
-    legacy.close()
+    base_dsn = os.environ["DATABASE_URL"]  # set by the temp_db fixture to the base DSN
+    schema = f"legacy_{uuid.uuid4().hex}"
+    with psycopg.connect(base_dsn, autocommit=True) as admin:
+        admin.execute(f'CREATE SCHEMA "{schema}"')
+        admin.execute(
+            f'CREATE TABLE "{schema}".users ('
+            " id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            " email TEXT NOT NULL UNIQUE,"
+            " password_hash TEXT NOT NULL,"
+            " created_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+        )
+        admin.execute(
+            f"INSERT INTO \"{schema}\".users (email, password_hash)"
+            " VALUES ('old@example.com', 'x')"
+        )
 
-    monkeypatch.setattr(db, "DB_PATH", path)
+    # Re-point the pool at the legacy schema and run the schema setup over it.
+    monkeypatch.setenv("PGOPTIONS", f"-c search_path={schema}")
+    db.reset_pool()
     db.init_db()
 
     with db.get_connection() as conn:
         row = conn.execute("SELECT email, name FROM users").fetchone()
     assert (row["email"], row["name"]) == ("old@example.com", "")
+
+    db.reset_pool()
+    with psycopg.connect(base_dsn, autocommit=True) as admin:
+        admin.execute(f'DROP SCHEMA "{schema}" CASCADE')

@@ -5,6 +5,11 @@ from app.models.schemas import CaseAnalysis, CaseUnderstanding
 
 TITLE_MAX = 120
 
+# created_at is a timestamptz, but the API (and the frontend's formatSavedAt) expects
+# the old SQLite string shape "YYYY-MM-DD HH:MM:SS" in UTC. Render it in SQL so the
+# contract is unchanged. No user input goes in, so inlining the expression is safe.
+_CREATED_AT_TEXT = "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')"
+
 
 def build_title(understanding: CaseUnderstanding, filenames: list[str]) -> str:
     """A human-readable label for the case-history list.
@@ -26,10 +31,11 @@ def build_title(understanding: CaseUnderstanding, filenames: list[str]) -> str:
 
 def save_case(user_id: int, analysis: CaseAnalysis, filenames: list[str]) -> int:
     with get_connection() as conn:
-        cursor = conn.execute(
+        row = conn.execute(
             """
             INSERT INTO cases (user_id, title, filenames, warning_count, analysis)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
             """,
             (
                 user_id,
@@ -38,8 +44,8 @@ def save_case(user_id: int, analysis: CaseAnalysis, filenames: list[str]) -> int
                 len(analysis.warnings),
                 analysis.model_dump_json(),
             ),
-        )
-    return cursor.lastrowid
+        ).fetchone()
+    return row["id"]
 
 
 def _summary(row) -> dict:
@@ -55,9 +61,9 @@ def _summary(row) -> dict:
 def list_cases(user_id: int) -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute(
-            """
-            SELECT id, title, filenames, warning_count, created_at
-            FROM cases WHERE user_id = ? ORDER BY id DESC
+            f"""
+            SELECT id, title, filenames, warning_count, {_CREATED_AT_TEXT} AS created_at
+            FROM cases WHERE user_id = %s ORDER BY id DESC
             """,
             (user_id,),
         ).fetchall()
@@ -68,9 +74,10 @@ def get_case(user_id: int, case_id: int) -> dict | None:
     """Scoped by user_id so one account can never read another's case."""
     with get_connection() as conn:
         row = conn.execute(
-            """
-            SELECT id, title, filenames, warning_count, created_at, analysis
-            FROM cases WHERE id = ? AND user_id = ?
+            f"""
+            SELECT id, title, filenames, warning_count,
+                   {_CREATED_AT_TEXT} AS created_at, analysis
+            FROM cases WHERE id = %s AND user_id = %s
             """,
             (case_id, user_id),
         ).fetchone()
@@ -83,6 +90,6 @@ def get_case(user_id: int, case_id: int) -> dict | None:
 def delete_case(user_id: int, case_id: int) -> bool:
     with get_connection() as conn:
         cursor = conn.execute(
-            "DELETE FROM cases WHERE id = ? AND user_id = ?", (case_id, user_id)
+            "DELETE FROM cases WHERE id = %s AND user_id = %s", (case_id, user_id)
         )
     return cursor.rowcount > 0

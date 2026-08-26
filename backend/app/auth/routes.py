@@ -1,9 +1,10 @@
-import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
+import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from psycopg.errors import UniqueViolation
 from pydantic import BaseModel, Field, field_validator
 
 from app.auth.db import get_connection
@@ -81,11 +82,11 @@ def _throttle_auth(request: Request, action: str) -> None:
     )
 
 
-def _create_session(conn: sqlite3.Connection, user_id: int) -> str:
+def _create_session(conn: psycopg.Connection, user_id: int) -> str:
     token = new_session_token()
-    expires_at = (datetime.now(timezone.utc) + SESSION_LIFETIME).isoformat()
+    expires_at = datetime.now(timezone.utc) + SESSION_LIFETIME
     conn.execute(
-        "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+        "INSERT INTO sessions (token, user_id, expires_at) VALUES (%s, %s, %s)",
         (token, user_id, expires_at),
     )
     return token
@@ -100,9 +101,12 @@ def get_current_user(
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.email, users.name, users.created_at, sessions.expires_at
+            SELECT users.id, users.email, users.name,
+                   to_char(users.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')
+                       AS created_at,
+                   sessions.expires_at
             FROM sessions JOIN users ON users.id = sessions.user_id
-            WHERE sessions.token = ?
+            WHERE sessions.token = %s
             """,
             (credentials.credentials,),
         ).fetchone()
@@ -110,10 +114,10 @@ def get_current_user(
         if row is None:
             raise HTTPException(status_code=401, detail="Invalid or expired session.")
 
-        if datetime.fromisoformat(row["expires_at"]) < datetime.now(timezone.utc):
-            conn.execute("DELETE FROM sessions WHERE token = ?", (credentials.credentials,))
-            # sqlite3's context manager rolls back when the block exits via an exception,
-            # so the delete has to be committed before raising or it never happens.
+        if row["expires_at"] < datetime.now(timezone.utc):
+            conn.execute("DELETE FROM sessions WHERE token = %s", (credentials.credentials,))
+            # The context manager rolls back when the block exits via an exception, so
+            # the delete has to be committed before raising or it never happens.
             conn.commit()
             raise HTTPException(status_code=401, detail="Invalid or expired session.")
 
@@ -131,15 +135,16 @@ def signup(credentials: SignupCredentials, request: Request) -> AuthResponse:
     _throttle_auth(request, "signup")
     with get_connection() as conn:
         try:
-            cursor = conn.execute(
-                "INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)",
+            row = conn.execute(
+                "INSERT INTO users (email, password_hash, name) VALUES (%s, %s, %s)"
+                " RETURNING id",
                 (credentials.email, hash_password(credentials.password), credentials.name),
-            )
-        except sqlite3.IntegrityError:
+            ).fetchone()
+        except UniqueViolation:
             raise HTTPException(
                 status_code=409, detail="An account with this email already exists."
             ) from None
-        token = _create_session(conn, cursor.lastrowid)
+        token = _create_session(conn, row["id"])
     return AuthResponse(token=token, email=credentials.email)
 
 
@@ -150,7 +155,7 @@ def login(credentials: Credentials, request: Request) -> AuthResponse:
     _throttle_auth(request, "login")
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT id, password_hash FROM users WHERE email = ?",
+            "SELECT id, password_hash FROM users WHERE email = %s",
             (credentials.email,),
         ).fetchone()
 
@@ -171,11 +176,11 @@ def update_me(
     update: ProfileUpdate, user: CurrentUser = Depends(get_current_user)
 ) -> MeResponse:
     with get_connection() as conn:
-        conn.execute("UPDATE users SET name = ? WHERE id = ?", (update.name, user.id))
+        conn.execute("UPDATE users SET name = %s WHERE id = %s", (update.name, user.id))
     return MeResponse(email=user.email, name=update.name, created_at=user.created_at)
 
 
 @router.post("/logout", status_code=204)
 def logout(user: CurrentUser = Depends(get_current_user)) -> None:
     with get_connection() as conn:
-        conn.execute("DELETE FROM sessions WHERE token = ?", (user.token,))
+        conn.execute("DELETE FROM sessions WHERE token = %s", (user.token,))

@@ -1,54 +1,82 @@
-import sqlite3
-from pathlib import Path
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
-# Lives next to pyproject.toml (backend/prehearing.db); gitignored.
-DB_PATH = Path(__file__).resolve().parents[2] / "prehearing.db"
+from app.config import get_settings
 
+# Schema is idempotent DDL (no migration files): every statement is safe to re-run at
+# startup, and columns added after a database already exists are ADDed IF NOT EXISTS.
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at TEXT NOT NULL
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS cases (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     filenames TEXT NOT NULL,
     warning_count INTEGER NOT NULL DEFAULT 0,
     analysis TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_cases_user ON cases(user_id, id DESC);
+
+-- Columns added after the tables first shipped. ADD COLUMN IF NOT EXISTS is a no-op
+-- on a database that already has them, and creates them on one that predates them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
 """
 
+_pool: ConnectionPool | None = None
 
-def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+
+def get_pool() -> ConnectionPool:
+    """The process-wide connection pool, opened lazily against the configured DSN.
+
+    Pooling is what makes Postgres safe under multiple workers and concurrent requests:
+    connections are reused rather than opened per request, and returned to the pool on
+    context exit — which also closes the connection-leak the old sqlite3 code had.
+    """
+    global _pool
+    if _pool is None:
+        _pool = ConnectionPool(
+            get_settings().database_url,
+            kwargs={"row_factory": dict_row},
+            open=True,
+        )
+    return _pool
+
+
+def get_connection():
+    """A pooled connection as a context manager.
+
+    `with get_connection() as conn:` yields a connection wrapped in a transaction —
+    it commits on a clean exit, rolls back on an exception, and returns the connection
+    to the pool either way. Same call shape as the old sqlite3 helper.
+    """
+    return get_pool().connection()
 
 
 def init_db() -> None:
     with get_connection() as conn:
-        conn.executescript(_SCHEMA)
-        _add_missing_columns(conn)
+        # No parameters, so psycopg runs the whole multi-statement script in one call.
+        conn.execute(_SCHEMA)
 
 
-def _add_missing_columns(conn: sqlite3.Connection) -> None:
-    """CREATE TABLE IF NOT EXISTS won't touch a table that already exists, so columns
-    added after a database was first created need an explicit ALTER."""
-    columns = {row["name"] for row in conn.execute("PRAGMA table_info(users)")}
-    if "name" not in columns:
-        conn.execute("ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''")
+def reset_pool() -> None:
+    """Close and drop the pool so the next get_pool() rebuilds it against the current
+    DSN. Used at shutdown and by the test suite to re-point the pool per test."""
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None

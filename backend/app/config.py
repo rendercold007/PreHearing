@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     indiankanoon_api_token: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
+    # Postgres connection string. Defaults to the local docker-compose service so a
+    # fresh checkout runs against `docker compose up` with no extra configuration.
+    database_url: str = "postgresql://prehearing:prehearing@localhost:5432/prehearing"
+
     # Upload guardrails. Without these a single request can read an unbounded number
     # of bytes into memory before anything else runs.
     max_files: int = 20

@@ -1,7 +1,19 @@
+import os
+import uuid
+
+import psycopg
 import pytest
 
 from app.auth import db
 from app.config import get_settings
+
+# Base Postgres DSN with no per-test schema. Defaults to the docker-compose service;
+# point TEST_DATABASE_URL (or DATABASE_URL) at another database to run elsewhere.
+BASE_DSN = (
+    os.environ.get("TEST_DATABASE_URL")
+    or os.environ.get("DATABASE_URL")
+    or "postgresql://prehearing:prehearing@localhost:5432/prehearing"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -28,18 +40,32 @@ def clear_rate_limits():
 
 
 @pytest.fixture(autouse=True)
-def temp_db(tmp_path, monkeypatch):
-    """Every test gets its own SQLite file — never the developer's prehearing.db."""
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
+def temp_db(monkeypatch):
+    """Every test gets its own Postgres schema — created fresh, dropped after — so
+    tests never see each other's rows and never touch a real database. The schema is
+    made the search_path via PGOPTIONS, so the pool's connections land in it."""
+    schema = f"test_{uuid.uuid4().hex}"
+    with psycopg.connect(BASE_DSN, autocommit=True) as admin:
+        admin.execute(f'CREATE SCHEMA "{schema}"')
+
+    monkeypatch.setenv("DATABASE_URL", BASE_DSN)
+    monkeypatch.setenv("PGOPTIONS", f"-c search_path={schema}")
+    get_settings.cache_clear()
+    db.reset_pool()
     db.init_db()
+    yield
+    db.reset_pool()
+    with psycopg.connect(BASE_DSN, autocommit=True) as admin:
+        admin.execute(f'DROP SCHEMA "{schema}" CASCADE')
 
 
 def _create_user(email: str) -> int:
     with db.get_connection() as conn:
-        cursor = conn.execute(
-            "INSERT INTO users (email, password_hash) VALUES (?, 'x')", (email,)
-        )
-    return cursor.lastrowid
+        row = conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES (%s, 'x') RETURNING id",
+            (email,),
+        ).fetchone()
+    return row["id"]
 
 
 @pytest.fixture
