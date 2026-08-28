@@ -25,9 +25,12 @@ function LogoMark() {
 
 export function Logo() {
   return (
-    <Link to="/" className="logo">
+    <Link
+      to="/"
+      className="inline-flex items-center gap-[0.6rem] text-fg no-underline transition-colors hover:text-accent"
+    >
       <LogoMark />
-      <span className="logo-text">Casper</span>
+      <span className="text-[1.1rem] font-semibold tracking-[0.02em]">Casper</span>
     </Link>
   );
 }

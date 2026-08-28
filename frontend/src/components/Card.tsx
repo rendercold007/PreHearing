@@ -16,13 +16,21 @@ export function Card({ icon, title, preview, onClick }: CardProps) {
   }
 
   return (
-    <div className="card" role="button" tabIndex={0} onClick={onClick} onKeyDown={handleKeyDown}>
-      <span className="card-icon" aria-hidden="true">
+    <div
+      className="cursor-pointer rounded-card border border-line bg-surface p-6 transition-all duration-[220ms] hover:-translate-y-1.5 hover:border-line-hover hover:bg-surface-hover hover:shadow-card hover:outline-none focus-visible:-translate-y-1.5 focus-visible:border-line-hover focus-visible:bg-surface-hover focus-visible:shadow-card focus-visible:outline-none"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+    >
+      <span className="mb-3 block text-[1.75rem]" aria-hidden="true">
         {icon}
       </span>
-      <h3 className="card-title">{title}</h3>
-      <p className="card-preview">{preview}</p>
-      <span className="card-footer">View details →</span>
+      <h3 className="mb-2 text-[1.05rem] font-semibold text-fg">{title}</h3>
+      <p className="m-0 text-[0.88rem] leading-[1.55] text-muted">{preview}</p>
+      <span className="mt-[1.1rem] inline-block text-[0.8rem] font-semibold tracking-[0.02em] text-accent">
+        View details →
+      </span>
     </div>
   );
 }

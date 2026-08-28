@@ -2,6 +2,20 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { requestPasswordReset } from "../api/auth";
+import {
+    authCard,
+    authField,
+    authFieldLabel,
+    authForm,
+    authLink,
+    authSubtitle,
+    authSwitch,
+    authTitle,
+    btnPrimary,
+    mainPad,
+    siteHeader,
+    textInput,
+} from "../ui";
 
 export function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
@@ -24,36 +38,37 @@ export function ForgotPasswordPage() {
     }
 
     return (
-        <main>
-            <header className="site-header">
+        <main className={mainPad}>
+            <header className={siteHeader}>
                 <Logo />
             </header>
 
-            <div className="auth-page">
-                <section className="auth-card">
-                    <h1 className="auth-title">Reset your password</h1>
+            <div className="flex justify-center py-12">
+                <section className={authCard}>
+                    <h1 className={authTitle}>Reset your password</h1>
 
                     {sent ? (
                         <>
-                            <p className="auth-subtitle">
+                            <p className={authSubtitle}>
                                 If an account exists for <strong>{email}</strong>, we've sent a
                                 link to reset your password. Check your inbox — the link expires
                                 in an hour.
                             </p>
-                            <p className="auth-switch">
-                                <Link to="/login">Back to log in</Link>
+                            <p className={authSwitch}>
+                                <Link to="/login" className={authLink}>Back to log in</Link>
                             </p>
                         </>
                     ) : (
                         <>
-                            <p className="auth-subtitle">
+                            <p className={authSubtitle}>
                                 Enter your email and we'll send you a link to set a new password.
                             </p>
 
-                            <form className="auth-form" onSubmit={handleSubmit}>
-                                <label className="auth-field">
-                                    <span>Email</span>
+                            <form className={authForm} onSubmit={handleSubmit}>
+                                <label className={authField}>
+                                    <span className={authFieldLabel}>Email</span>
                                     <input
+                                        className={textInput}
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -62,15 +77,19 @@ export function ForgotPasswordPage() {
                                     />
                                 </label>
 
-                                {error && <p role="alert">{error}</p>}
+                                {error && (
+                                    <p role="alert" className="m-0 rounded-card bg-danger-bg px-4 py-3 text-[0.88rem] text-danger">
+                                        {error}
+                                    </p>
+                                )}
 
-                                <button type="submit" disabled={submitting}>
+                                <button type="submit" className={`${btnPrimary} mt-1`} disabled={submitting}>
                                     {submitting ? "Sending…" : "Send reset link"}
                                 </button>
                             </form>
 
-                            <p className="auth-switch">
-                                Remembered it? <Link to="/login">Log in</Link>
+                            <p className={authSwitch}>
+                                Remembered it? <Link to="/login" className={authLink}>Log in</Link>
                             </p>
                         </>
                     )}

@@ -10,11 +10,18 @@ import { StressTestPage } from "../pages/StressTestPage";
 import { PreparePage } from "../pages/PreparePage";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
+import { btnPrimary, btnSecondary, warnAlert, warnAlertTitle } from "../ui";
 
 type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
 
 /** Stage 04 runs twice — once for our authorities, once flipped to the opponent's. */
 type ResearchPass = "supporting" | "adverse";
+
+function segmentedOption(active: boolean): string {
+    return `cursor-pointer rounded-lg border-0 bg-transparent px-[0.9rem] py-[0.4rem] text-[0.88rem] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:text-fg"
+    }`;
+}
 
 function truncate(text: string, max: number): string {
     const trimmed = text.trim();
@@ -124,18 +131,18 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
 
     return (
         <>
-            <div className="result-header">
-                <div className="result-summary">
-                    <p className="result-case-type">{analysis.understanding.case_type}</p>
-                    {parties.length > 0 && <p className="result-parties">{parties.join(" · ")}</p>}
-                    <p className="result-stats">{stats.join(" · ")}</p>
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-5 rounded-card border border-line border-l-[3px] border-l-accent bg-surface p-6">
+                <div className="min-w-0 flex-[1_1_20rem] [overflow-wrap:break-word]">
+                    <p className="m-0 text-[1.25rem] font-semibold capitalize">{analysis.understanding.case_type}</p>
+                    {parties.length > 0 && <p className="mt-[0.15rem] text-fg">{parties.join(" · ")}</p>}
+                    <p className="mt-[0.35rem] text-[0.85rem] text-muted">{stats.join(" · ")}</p>
                 </div>
-                <div className="result-actions">
+                <div className="flex flex-wrap items-center gap-2">
                     {caseId !== null && (
                         <>
                             <button
                                 type="button"
-                                className="analyze-button"
+                                className={btnPrimary}
                                 onClick={() => handleExport(caseId, "pdf")}
                                 disabled={exportingFormat !== null}
                             >
@@ -143,7 +150,7 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                             </button>
                             <button
                                 type="button"
-                                className="secondary-button"
+                                className={btnSecondary}
                                 onClick={() => handleExport(caseId, "docx")}
                                 disabled={exportingFormat !== null}
                             >
@@ -153,10 +160,10 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                     )}
                     {onAnalyzeAnother && (
                         <>
-                            <button type="button" className="secondary-button" onClick={onAnalyzeAnother}>
+                            <button type="button" className={btnSecondary} onClick={onAnalyzeAnother}>
                                 Analyze another case
                             </button>
-                            <Link to="/cases" className="secondary-button">
+                            <Link to="/cases" className={btnSecondary}>
                                 Case history
                             </Link>
                         </>
@@ -165,30 +172,30 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
             </div>
 
             {exportError && (
-                <div className="alert" role="alert">
-                    <p className="alert-title">Export failed</p>
-                    <p>{exportError}</p>
+                <div className={warnAlert} role="alert">
+                    <p className={`my-[0.2rem] ${warnAlertTitle}`}>Export failed</p>
+                    <p className="my-[0.2rem]">{exportError}</p>
                 </div>
             )}
 
             {analysis.warnings.length > 0 && (
-                <div className="alert" role="alert">
-                    <p className="alert-title">
+                <div className={warnAlert} role="alert">
+                    <p className={`my-[0.2rem] ${warnAlertTitle}`}>
                         {analysis.warnings.length === 1
                             ? "One stage did not complete"
                             : `${analysis.warnings.length} stages did not complete`}
                     </p>
                     {analysis.warnings.map((w, index) => (
-                        <p key={`${index}:${w}`}>{w}</p>
+                        <p key={`${index}:${w}`} className="my-[0.2rem]">{w}</p>
                     ))}
                 </div>
             )}
 
-            <div className="card-grid">
+            <div className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5">
                 {buildSections(analysis).map((section, index) => (
                     <div
                         key={section.key}
-                        className="card-appear"
+                        className="animate-card-in motion-reduce:animate-none"
                         style={{ animationDelay: `${index * 60}ms` }}
                     >
                         <Card
@@ -219,14 +226,18 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                         setResearchPass("supporting");
                     }}
                 >
-                    <div className="segmented" role="tablist" aria-label="Research pass">
+                    <div
+                        className="mb-[0.6rem] inline-flex gap-1 rounded-[10px] border border-line bg-white/[0.02] p-1"
+                        role="tablist"
+                        aria-label="Research pass"
+                    >
                         <button
                             type="button"
                             role="tab"
                             id="research-tab-supporting"
                             aria-selected={researchPass === "supporting"}
                             aria-controls="research-panel"
-                            className={`segmented-option${researchPass === "supporting" ? " active" : ""}`}
+                            className={segmentedOption(researchPass === "supporting")}
                             onClick={() => setResearchPass("supporting")}
                         >
                             Supporting ({countAuthorities(analysis.research)})
@@ -237,13 +248,13 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                             id="research-tab-adverse"
                             aria-selected={researchPass === "adverse"}
                             aria-controls="research-panel"
-                            className={`segmented-option${researchPass === "adverse" ? " active" : ""}`}
+                            className={segmentedOption(researchPass === "adverse")}
                             onClick={() => setResearchPass("adverse")}
                         >
                             Opposing ({countAuthorities(analysis.adverse_research)})
                         </button>
                     </div>
-                    <p className="segmented-hint">
+                    <p className="mb-4 text-[0.85rem] text-muted">
                         {researchPass === "supporting"
                             ? "Authorities that support the case as pleaded."
                             : "Authorities the other side would rely on — these feed the stress test."}

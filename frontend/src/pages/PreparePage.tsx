@@ -1,4 +1,5 @@
 import type { HearingPrep } from "../types";
+import { btnPrimary, h2Title, h3Sub, olDecimal, ulDisc, liItem } from "../ui";
 
 interface PreparePageProps {
   hearingPrep: HearingPrep;
@@ -37,34 +38,36 @@ function handleExport(hearingPrep: HearingPrep) {
 export function PreparePage({ hearingPrep }: PreparePageProps) {
   return (
     <section>
-      <h2>Prepare</h2>
-      <button type="button" onClick={() => handleExport(hearingPrep)}>
+      <h2 className={h2Title}>Prepare</h2>
+      <button type="button" className={`${btnPrimary} mb-2`} onClick={() => handleExport(hearingPrep)}>
         Export as text
       </button>
 
-      <h3>Hearing Brief</h3>
-      <p>{hearingPrep.brief}</p>
+      <h3 className={h3Sub}>Hearing Brief</h3>
+      <p className="my-2">{hearingPrep.brief}</p>
 
-      <h3>Oral Argument Outline</h3>
-      {hearingPrep.outline.length === 0 && <p>No outline was generated.</p>}
-      <ol>
+      <h3 className={h3Sub}>Oral Argument Outline</h3>
+      {hearingPrep.outline.length === 0 && <p className="my-2">No outline was generated.</p>}
+      <ol className={olDecimal}>
         {hearingPrep.outline.map((section) => (
-          <li key={section.heading}>
-            <p>{section.heading}</p>
-            <ul>
+          <li key={section.heading} className={liItem}>
+            <p className="my-1">{section.heading}</p>
+            <ul className={ulDisc}>
               {section.talking_points.map((point) => (
-                <li key={point}>{point}</li>
+                <li key={point} className={liItem}>{point}</li>
               ))}
             </ul>
           </li>
         ))}
       </ol>
 
-      <h3>Checklist</h3>
-      {hearingPrep.checklist.length === 0 && <p>No checklist items were generated.</p>}
-      <ul>
+      <h3 className={h3Sub}>Checklist</h3>
+      {hearingPrep.checklist.length === 0 && (
+        <p className="my-2">No checklist items were generated.</p>
+      )}
+      <ul className={ulDisc}>
         {hearingPrep.checklist.map((entry) => (
-          <li key={entry.item}>
+          <li key={entry.item} className={liItem}>
             <strong>{entry.category}:</strong> {entry.item}
           </li>
         ))}

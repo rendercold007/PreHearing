@@ -6,6 +6,7 @@ import type {CaseAnalysis} from "../types";
 import {UploadPage} from "./UploadPage";
 import { AnalysisResult } from "../components/AnalysisResult";
 import { AppLayout } from "../components/AppLayout";
+import { btnPrimary, btnSecondary, surfaceCard } from "../ui";
 
 type Status = "idle" | "loading" | "error" | "done";
 
@@ -53,12 +54,12 @@ export function AnalyzePage(){
     return(
         <AppLayout>
             {status === "error" && quotaHit ? (
-                <div className="quota-wall">
-                    <h2>You've used all your analyses this month</h2>
-                    <p>{error}</p>
-                    <div className="quota-wall-actions">
-                        <Link to="/pricing" className="quota-wall-cta">View plans</Link>
-                        <button type="button" className="secondary-button" onClick={handleReset}>
+                <div className={`${surfaceCard} mx-auto max-w-[520px] p-8 text-center`}>
+                    <h2 className="mb-3 text-[1.25rem]">You've used all your analyses this month</h2>
+                    <p className="mb-5 text-muted">{error}</p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        <Link to="/pricing" className={btnPrimary}>View plans</Link>
+                        <button type="button" className={btnSecondary} onClick={handleReset}>
                             Back
                         </button>
                     </div>

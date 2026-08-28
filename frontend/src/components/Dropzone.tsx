@@ -81,10 +81,18 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
     if (!disabled) setDragging(true);
   }
 
+  const dropzoneClass = [
+    "flex flex-col items-center justify-center gap-[0.35rem] rounded-card border-[1.5px] border-dashed px-6 py-10 text-center transition-[border-color,background,transform] duration-200",
+    dragging
+      ? "border-accent bg-accent-soft scale-[1.005]"
+      : "border-line bg-white/[0.015] hover:border-line-hover hover:bg-surface-hover hover:outline-none focus-visible:border-line-hover focus-visible:bg-surface-hover focus-visible:outline-none",
+    disabled ? "cursor-default opacity-55" : "cursor-pointer",
+  ].join(" ");
+
   return (
-    <div className="dropzone-wrap">
+    <div className="flex flex-col gap-3">
       <div
-        className={`dropzone${dragging ? " dragging" : ""}${disabled ? " disabled" : ""}`}
+        className={dropzoneClass}
         role="button"
         tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && inputRef.current?.click()}
@@ -98,13 +106,14 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
       >
-        <span className="dropzone-icon" aria-hidden="true">
+        <span className="text-2xl leading-none text-accent" aria-hidden="true">
           ⬆
         </span>
-        <p className="dropzone-title">
-          Drop your case files here — or <span className="dropzone-browse">browse</span>
+        <p className="mt-[0.4rem] mb-0 font-semibold">
+          Drop your case files here — or{" "}
+          <span className="text-accent underline underline-offset-[3px]">browse</span>
         </p>
-        <p className="dropzone-hint">
+        <p className="m-0 text-[0.85rem] text-muted">
           PDF or DOCX · pleadings and exhibits together · scanned filings are OCR'd automatically
         </p>
         <input
@@ -113,7 +122,7 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
           accept={ACCEPTED.join(",")}
           multiple
           disabled={disabled}
-          className="dropzone-input"
+          className="hidden"
           onChange={(event) => {
             add(Array.from(event.target.files ?? []));
             event.target.value = "";
@@ -122,27 +131,30 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
       </div>
 
       {rejected.length > 0 && (
-        <p className="dropzone-rejected" role="alert">
+        <p className="mt-3 text-[0.88rem] text-danger" role="alert">
           Skipped {rejected.join(", ")} — only PDF and DOCX files can be analyzed.
         </p>
       )}
 
       {limitError && (
-        <p className="dropzone-rejected" role="alert">
+        <p className="mt-3 text-[0.88rem] text-danger" role="alert">
           {limitError}
         </p>
       )}
 
       {files.length > 0 && (
-        <ul className="file-list">
+        <ul className="m-0 mt-4 flex list-none flex-wrap gap-2 p-0">
           {files.map((file) => (
-            <li key={`${file.name}:${file.size}`} className="file-chip">
-              <span className="file-name">{file.name}</span>
-              <span className="file-size">{formatSize(file.size)}</span>
+            <li
+              key={`${file.name}:${file.size}`}
+              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-hover py-[0.35rem] pr-[0.5rem] pl-[0.8rem] text-[0.85rem]"
+            >
+              <span className="max-w-[260px] truncate">{file.name}</span>
+              <span className="text-[0.78rem] text-muted">{formatSize(file.size)}</span>
               {!disabled && (
                 <button
                   type="button"
-                  className="file-remove"
+                  className="grid h-[1.2rem] w-[1.2rem] cursor-pointer place-items-center rounded-full bg-transparent p-0 text-base leading-none text-muted transition-colors hover:bg-danger-bg hover:text-danger"
                   aria-label={`Remove ${file.name}`}
                   onClick={() => {
                     setLimitError(null);

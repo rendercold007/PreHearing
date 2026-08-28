@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { dangerAlert } from "../ui";
 
 // Minimal shape of the Google Identity Services global we use (loaded in index.html).
 interface GoogleCredentialResponse {
@@ -80,10 +81,14 @@ export function GoogleSignInButton() {
     if (!CLIENT_ID) return null;
 
     return (
-        <div className="google-signin">
-            <div className="auth-divider"><span>or</span></div>
-            <div ref={containerRef} className="google-signin-button" />
-            {error && <p role="alert">{error}</p>}
+        <div className="flex flex-col items-center gap-3">
+            <div className="mt-5 mb-1 flex w-full items-center gap-3 text-[0.8rem] text-muted">
+                <span className="h-px flex-1 bg-line" />
+                <span>or</span>
+                <span className="h-px flex-1 bg-line" />
+            </div>
+            <div ref={containerRef} className="flex justify-center" />
+            {error && <p role="alert" className={dangerAlert}>{error}</p>}
         </div>
     );
 }

@@ -6,11 +6,21 @@ import type { CaseSummary } from "../types";
 import { useAuth } from "../auth/AuthContext";
 import { Avatar } from "../components/Avatar";
 import { AppLayout } from "../components/AppLayout";
+import {
+    btnPrimary,
+    btnSecondary,
+    caseEmpty,
+    caseTitle,
+    dangerAlert,
+    pageLede,
+    pageTitle,
+    surfaceCard,
+} from "../ui";
 
 const RECENT_LIMIT = 5;
 
 export function ProfilePage() {
-    const { email, name, setName, logout } = useAuth();
+    const { email, name, isPaid, setName, logout } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<AccountProfile | null>(null);
     const [cases, setCases] = useState<CaseSummary[] | null>(null);
@@ -66,23 +76,27 @@ export function ProfilePage() {
 
     return (
         <AppLayout>
-            <h1 className="page-title">Profile</h1>
-            <p className="page-lede">Your account and what it holds.</p>
+            <h1 className={pageTitle}>Profile</h1>
+            <p className={pageLede}>Your account and what it holds.</p>
 
-            {error && <p role="alert">{error}</p>}
+            {error && <p role="alert" className={dangerAlert}>{error}</p>}
 
-            <section className="profile-card">
-                <div className="profile-identity">
-                    <Avatar email={email ?? ""} name={name} size="lg" />
+            <section className={`${surfaceCard} mb-6 p-7`}>
+                <div className="flex items-center gap-4">
+                    <Avatar email={email ?? ""} name={name} size="lg" paid={isPaid} />
 
                     {editing ? (
-                        <div className="profile-edit">
-                            <label className="profile-edit-label" htmlFor="profile-name">
+                        <div className="min-w-0 flex-1">
+                            <label
+                                className="mb-[0.3rem] block text-[0.78rem] uppercase tracking-[0.06em] text-muted"
+                                htmlFor="profile-name"
+                            >
                                 Display name
                             </label>
-                            <div className="profile-edit-row">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <input
                                     id="profile-name"
+                                    className="min-w-[180px] flex-1 rounded-card border border-line bg-base px-3 py-[0.55rem] text-[0.95rem] text-fg focus:border-line-hover focus:outline-none"
                                     type="text"
                                     value={draft}
                                     maxLength={80}
@@ -94,27 +108,27 @@ export function ProfilePage() {
                                         if (event.key === "Escape") setEditing(false);
                                     }}
                                 />
-                                <button type="button" onClick={() => void handleSave()} disabled={saving}>
+                                <button type="button" className={btnPrimary} onClick={() => void handleSave()} disabled={saving}>
                                     {saving ? "Saving…" : "Save"}
                                 </button>
                                 <button
                                     type="button"
-                                    className="secondary-button"
+                                    className={btnSecondary}
                                     onClick={() => setEditing(false)}
                                     disabled={saving}
                                 >
                                     Cancel
                                 </button>
                             </div>
-                            {saveError && <p role="alert">{saveError}</p>}
+                            {saveError && <p role="alert" className={dangerAlert}>{saveError}</p>}
                         </div>
                     ) : (
-                        <div className="profile-identity-text">
-                            <p className="profile-name">
-                                {name || <span className="profile-name-empty">No name set</span>}
+                        <div className="min-w-0">
+                            <p className="m-0 text-[1.25rem] font-semibold">
+                                {name || <span className="font-medium text-muted">No name set</span>}
                             </p>
-                            <p className="profile-email">{email}</p>
-                            <p className="profile-sub">
+                            <p className="mt-[0.15rem] mb-0 text-[0.95rem] font-medium text-fg">{email}</p>
+                            <p className="mt-[0.2rem] mb-0 text-[0.88rem] text-muted">
                                 {profile
                                     ? `Member since ${formatSavedAt(profile.created_at)}`
                                     : "Loading account details…"}
@@ -123,60 +137,63 @@ export function ProfilePage() {
                     )}
 
                     {!editing && (
-                        <button type="button" className="secondary-button profile-edit-button" onClick={startEditing}>
+                        <button type="button" className={`${btnSecondary} ml-auto`} onClick={startEditing}>
                             {name ? "Edit name" : "Add name"}
                         </button>
                     )}
                 </div>
 
-                <dl className="profile-facts">
+                <dl className="my-7 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 border-y border-line py-5">
                     <div>
-                        <dt>Saved cases</dt>
-                        <dd>{cases === null ? "—" : cases.length}</dd>
+                        <dt className="text-[0.78rem] uppercase tracking-[0.06em] text-muted">Saved cases</dt>
+                        <dd className="mt-[0.3rem] mb-0 text-[1.1rem] font-semibold">{cases === null ? "—" : cases.length}</dd>
                     </div>
                     <div>
-                        <dt>Visibility</dt>
-                        <dd>Private to this account</dd>
+                        <dt className="text-[0.78rem] uppercase tracking-[0.06em] text-muted">Visibility</dt>
+                        <dd className="mt-[0.3rem] mb-0 text-[1.1rem] font-semibold">Private to this account</dd>
                     </div>
                 </dl>
 
-                <p className="profile-note">
+                <p className="my-4 text-[0.88rem] text-muted">
                     Your uploaded documents are read in memory and not retained. Saved analyses stay
                     in your case history until you delete them.
                 </p>
 
-                <button type="button" className="secondary-button" onClick={handleLogout}>
+                <button type="button" className={btnSecondary} onClick={handleLogout}>
                     Sign out
                 </button>
             </section>
 
-            <section className="profile-card">
-                <div className="profile-section-head">
-                    <h2>Case history</h2>
+            <section className={`${surfaceCard} mb-6 p-7`}>
+                <div className="mb-4 flex items-baseline justify-between gap-4">
+                    <h2 className="m-0 text-[1.25rem]">Case history</h2>
                     {cases !== null && cases.length > RECENT_LIMIT && (
-                        <Link to="/cases" className="profile-see-all">
+                        <Link to="/cases" className="text-[0.88rem] text-accent no-underline hover:underline">
                             View all {cases.length} →
                         </Link>
                     )}
                 </div>
 
-                {cases === null && <p className="case-empty">Loading your cases…</p>}
+                {cases === null && <p className={caseEmpty}>Loading your cases…</p>}
 
                 {cases !== null && cases.length === 0 && (
-                    <p className="case-empty">
-                        No saved cases yet. <Link to="/app">Analyze a case</Link> and it will appear
+                    <p className={caseEmpty}>
+                        No saved cases yet. <Link to="/app" className="text-accent">Analyze a case</Link> and it will appear
                         here.
                     </p>
                 )}
 
                 {cases !== null && cases.length > 0 && (
-                    <ul className="profile-case-list">
+                    <ul className="m-0 grid list-none gap-[0.15rem] p-0">
                         {cases.slice(0, RECENT_LIMIT).map((item) => (
-                            <li key={item.id} className="profile-case-item">
-                                <Link to={`/cases/${item.id}`} className="case-title">
+                            <li
+                                key={item.id}
+                                className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line py-[0.7rem] last:border-b-0"
+                            >
+                                <Link to={`/cases/${item.id}`} className={caseTitle}>
                                     {item.title}
                                 </Link>
-                                <span className="case-meta">{formatSavedAt(item.created_at)}</span>
+                                <span className="m-0 whitespace-nowrap text-[0.85rem] text-muted">{formatSavedAt(item.created_at)}</span>
                             </li>
                         ))}
                     </ul>

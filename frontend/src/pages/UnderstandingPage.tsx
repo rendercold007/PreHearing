@@ -1,5 +1,6 @@
 import type { CaseUnderstanding } from "../types";
 import { Citations } from "../components/Citations";
+import { h2Title, h3Sub, ulDisc, liItem } from "../ui";
 
 interface UnderstandingPageProps {
   understanding: CaseUnderstanding;
@@ -8,43 +9,47 @@ interface UnderstandingPageProps {
 export function UnderstandingPage({ understanding }: UnderstandingPageProps) {
   return (
     <section>
-      <h2>Case Understanding</h2>
+      <h2 className={h2Title}>Case Understanding</h2>
 
-      <p>
+      <p className="my-2">
         <strong>Case type:</strong> {understanding.case_type}
       </p>
 
-      <p>{understanding.summary}</p>
+      <p className="my-2">{understanding.summary}</p>
 
-      <h3>Parties</h3>
-      <ul>
+      <h3 className={h3Sub}>Parties</h3>
+      <ul className={ulDisc}>
         {understanding.parties.map((party) => (
-          <li key={party.name}>
+          <li key={party.name} className={liItem}>
             {party.name} - {party.role}
           </li>
         ))}
       </ul>
 
-      <h3>Key facts</h3>
-      <ul>
+      <h3 className={h3Sub}>Key facts</h3>
+      <ul className={ulDisc}>
         {understanding.key_facts.map((fact) => (
-          <li key={fact.text}>
+          <li key={fact.text} className={liItem}>
             {fact.text} <Citations citations={fact.citations} />
           </li>
         ))}
       </ul>
 
-      <h3>Claims</h3>
-      <ul>
+      <h3 className={h3Sub}>Claims</h3>
+      <ul className={ulDisc}>
         {understanding.claims.map((claim) => (
-          <li key={claim}>{claim}</li>
+          <li key={claim} className={liItem}>
+            {claim}
+          </li>
         ))}
       </ul>
 
-      <h3>Disputed Points</h3>
-      <ul>
+      <h3 className={h3Sub}>Disputed Points</h3>
+      <ul className={ulDisc}>
         {understanding.disputed_points.map((point) => (
-          <li key={point}>{point}</li>
+          <li key={point} className={liItem}>
+            {point}
+          </li>
         ))}
       </ul>
     </section>

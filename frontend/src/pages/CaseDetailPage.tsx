@@ -4,6 +4,7 @@ import { formatSavedAt, getCase } from "../api/cases";
 import type { CaseDetail } from "../types";
 import { AnalysisResult } from "../components/AnalysisResult";
 import { AppLayout } from "../components/AppLayout";
+import { caseEmpty, dangerAlert } from "../ui";
 
 export function CaseDetailPage() {
     const { caseId } = useParams();
@@ -25,19 +26,22 @@ export function CaseDetailPage() {
 
     return (
         <AppLayout>
-                <Link to="/cases" className="back-link">
+                <Link
+                    to="/cases"
+                    className="mb-2 inline-block text-[0.9rem] text-muted no-underline hover:text-accent"
+                >
                     ← Case history
                 </Link>
 
-                {error && <p role="alert">{error}</p>}
+                {error && <p role="alert" className={dangerAlert}>{error}</p>}
 
-                {!caseDetail && !error && <p className="case-empty">Loading case…</p>}
+                {!caseDetail && !error && <p className={caseEmpty}>Loading case…</p>}
 
                 {caseDetail && (
                     <>
                         {/* The result header below carries the case type, so the saved
                             title would only repeat it — show the run's provenance instead. */}
-                        <p className="case-meta detail-meta">
+                        <p className="mt-1 mb-4 text-[0.85rem] text-muted">
                             Analyzed {formatSavedAt(caseDetail.created_at)}
                             {caseDetail.filenames.length > 0 &&
                                 ` · ${caseDetail.filenames.join(", ")}`}

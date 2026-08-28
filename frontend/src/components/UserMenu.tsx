@@ -2,19 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Avatar } from "./Avatar";
-import { fetchBillingStatus, type BillingStatus } from "../api/billing";
 
 export function UserMenu() {
-  const { email, name, logout } = useAuth();
+  const { email, name, isPaid, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [billing, setBilling] = useState<BillingStatus | null>(null);
-
-  useEffect(() => {
-    if (!open || billing) return;
-    fetchBillingStatus().then(setBilling).catch(() => undefined);
-  }, [open, billing]);
 
   useEffect(() => {
     if (!open) return;
@@ -43,42 +36,42 @@ export function UserMenu() {
   }
 
   return (
-    <div className="user-menu-wrap" ref={wrapRef}>
+    <div className="relative" ref={wrapRef}>
       <button
         type="button"
-        className="avatar-button"
+        className="group cursor-pointer rounded-full border-none bg-transparent p-0 leading-none"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account menu"
         onClick={() => setOpen((current) => !current)}
       >
-        <Avatar email={email} name={name} />
+        <Avatar email={email} name={name} paid={isPaid} />
       </button>
 
       {open && (
-        <div className="user-dropdown" role="menu">
-          <div className="user-dropdown-head">
-            <Avatar email={email} name={name} />
-            <span className="user-dropdown-identity">
-              {name && <span className="user-dropdown-name">{name}</span>}
-              <span className="user-dropdown-email">{email}</span>
+        <div
+          className="absolute top-[calc(100%+0.5rem)] right-0 z-20 min-w-[220px] rounded-xl border border-line bg-surface p-[0.4rem] shadow-card"
+          role="menu"
+        >
+          <div className="mb-[0.35rem] flex items-center gap-[0.6rem] border-b border-line p-[0.6rem]">
+            <Avatar email={email} name={name} paid={isPaid} />
+            <span className="flex min-w-0 flex-col">
+              {name && <span className="truncate text-[0.9rem] font-semibold">{name}</span>}
+              <span className="truncate text-[0.85rem] text-muted">{email}</span>
             </span>
           </div>
-          {billing && (
-            <div className="user-dropdown-plan">
-              <span className="user-dropdown-plan-name">{billing.plan} plan</span>
-              <span className="user-dropdown-plan-usage">
-                {billing.used}/{billing.limit} analyses this month
-              </span>
-            </div>
-          )}
-          <Link to="/pricing" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>
+          <Link to="/pricing" className={`${DROPDOWN_ITEM} hover:bg-surface-hover`} role="menuitem" onClick={() => setOpen(false)}>
             Plans &amp; pricing
           </Link>
-          <Link to="/profile" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>
+          <Link to="/profile" className={`${DROPDOWN_ITEM} hover:bg-surface-hover`} role="menuitem" onClick={() => setOpen(false)}>
             Profile
           </Link>
-          <button type="button" className="user-dropdown-item danger" role="menuitem" onClick={handleLogout}>
+          <button
+            type="button"
+            className={`${DROPDOWN_ITEM} hover:bg-danger-bg hover:text-danger`}
+            role="menuitem"
+            onClick={handleLogout}
+          >
             Sign out
           </button>
         </div>
@@ -86,3 +79,6 @@ export function UserMenu() {
     </div>
   );
 }
+
+const DROPDOWN_ITEM =
+  "block w-full cursor-pointer rounded-lg px-[0.6rem] py-[0.55rem] text-left text-[0.9rem] font-medium text-fg no-underline transition-colors";

@@ -3,6 +3,20 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { useAuth } from "../auth/AuthContext";
+import {
+    authCard,
+    authField,
+    authFieldLabel,
+    authForm,
+    authLink,
+    authSubtitle,
+    authSwitch,
+    authTitle,
+    btnPrimary,
+    mainPad,
+    siteHeader,
+    textInput,
+} from "../ui";
 
 interface AuthPageProps {
     mode: "login" | "signup";
@@ -54,29 +68,35 @@ export function AuthPage({ mode }: AuthPageProps) {
     }
 
     return (
-        <main>
-            <header className="site-header">
+        <main className={mainPad}>
+            <header className={siteHeader}>
                 <Logo />
             </header>
 
-            <div className="auth-page">
-                <section className="auth-card">
-                    <h1 className="auth-title">{isSignup ? "Create your account" : "Welcome back"}</h1>
-                    <p className="auth-subtitle">
+            <div className="flex justify-center py-12">
+                <section className={authCard}>
+                    <h1 className={authTitle}>{isSignup ? "Create your account" : "Welcome back"}</h1>
+                    <p className={authSubtitle}>
                         {isSignup
                             ? "Sign up to start analyzing your case files."
                             : "Log in to continue to your case analysis."}
                     </p>
 
                     {!isSignup && notice && (
-                        <p className="auth-notice" role="status">{notice}</p>
+                        <p
+                            className="mb-5 rounded-lg border border-accent bg-accent-soft px-4 py-3 text-[0.9rem] text-fg"
+                            role="status"
+                        >
+                            {notice}
+                        </p>
                     )}
 
-                    <form className="auth-form" onSubmit={handleSubmit}>
+                    <form className={authForm} onSubmit={handleSubmit}>
                         {isSignup && (
-                            <label className="auth-field">
-                                <span>Full name</span>
+                            <label className={authField}>
+                                <span className={authFieldLabel}>Full name</span>
                                 <input
+                                    className={textInput}
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
@@ -87,9 +107,10 @@ export function AuthPage({ mode }: AuthPageProps) {
                             </label>
                         )}
 
-                        <label className="auth-field">
-                            <span>Email</span>
+                        <label className={authField}>
+                            <span className={authFieldLabel}>Email</span>
                             <input
+                                className={textInput}
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -98,9 +119,10 @@ export function AuthPage({ mode }: AuthPageProps) {
                             />
                         </label>
 
-                        <label className="auth-field">
-                            <span>Password</span>
+                        <label className={authField}>
+                            <span className={authFieldLabel}>Password</span>
                             <input
+                                className={textInput}
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -108,13 +130,14 @@ export function AuthPage({ mode }: AuthPageProps) {
                                 minLength={8}
                                 required
                             />
-                            {isSignup && <small>At least 8 characters.</small>}
+                            {isSignup && <small className="text-[0.78rem] text-muted">At least 8 characters.</small>}
                         </label>
 
                         {isSignup && (
-                            <label className="auth-field">
-                                <span>Confirm password</span>
+                            <label className={authField}>
+                                <span className={authFieldLabel}>Confirm password</span>
                                 <input
+                                    className={textInput}
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -125,9 +148,13 @@ export function AuthPage({ mode }: AuthPageProps) {
                             </label>
                         )}
 
-                        {error && <p role="alert">{error}</p>}
+                        {error && (
+                            <p role="alert" className="m-0 rounded-card bg-danger-bg px-4 py-3 text-[0.88rem] text-danger">
+                                {error}
+                            </p>
+                        )}
 
-                        <button type="submit" disabled={submitting}>
+                        <button type="submit" className={`${btnPrimary} mt-1`} disabled={submitting}>
                             {submitting
                                 ? isSignup
                                     ? "Creating account…"
@@ -141,21 +168,21 @@ export function AuthPage({ mode }: AuthPageProps) {
                     <GoogleSignInButton />
 
                     {!isSignup && (
-                        <p className="auth-switch">
-                            <Link to="/forgot-password">Forgot your password?</Link>
+                        <p className={authSwitch}>
+                            <Link to="/forgot-password" className={authLink}>Forgot your password?</Link>
                         </p>
                     )}
 
-                    <p className="auth-switch">
+                    <p className={authSwitch}>
                         {isSignup ? (
                             <>
                                 Already have an account?{" "}
-                                <Link to="/login" state={{ from }}>Log in</Link>
+                                <Link to="/login" state={{ from }} className={authLink}>Log in</Link>
                             </>
                         ) : (
                             <>
                                 New to Casper?{" "}
-                                <Link to="/signup" state={{ from }}>Create an account</Link>
+                                <Link to="/signup" state={{ from }} className={authLink}>Create an account</Link>
                             </>
                         )}
                     </p>

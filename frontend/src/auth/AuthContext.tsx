@@ -10,10 +10,14 @@ import {
     signup as apiSignup,
     storeSession,
 } from "../api/auth";
+import { fetchBillingStatus, type Plan } from "../api/billing";
 
 interface AuthContextValue {
     email: string | null;
     name: string;
+    plan: Plan;
+    /** True for pro/plus subscribers — drives the star on the avatar. */
+    isPaid: boolean;
     isAuthenticated: boolean;
     checking: boolean;
     login: (email: string, password: string) => Promise<void>;
@@ -29,11 +33,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [email, setEmail] = useState<string | null>(() => getStoredSession()?.email ?? null);
     const [name, setName] = useState("");
+    const [plan, setPlan] = useState<Plan>("free");
     const [checking, setChecking] = useState(() => getStoredSession() !== null);
+
+    async function loadPlan() {
+        try {
+            const status = await fetchBillingStatus();
+            setPlan(status.plan);
+        } catch {
+            setPlan("free");
+        }
+    }
 
     useEffect(() => {
         const session = getStoredSession();
         if (!session) return;
+        void loadPlan();
         loadSessionProfile(session.token)
             .then((profile) => {
                 if (!profile) {
@@ -54,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         function handleSessionCleared() {
             setEmail(null);
             setName("");
+            setPlan("free");
         }
         window.addEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
         return () => window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
@@ -73,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storeSession(session);
         setEmail(session.email);
         await loadName(session.token);
+        void loadPlan();
     }
 
     async function signup(userName: string, userEmail: string, password: string) {
@@ -80,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storeSession(session);
         setEmail(session.email);
         setName(userName);
+        setPlan("free");
     }
 
     async function loginWithGoogle(credential: string) {
@@ -87,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storeSession(session);
         setEmail(session.email);
         await loadName(session.token);
+        void loadPlan();
     }
 
     function logout() {
@@ -95,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearSession();
         setEmail(null);
         setName("");
+        setPlan("free");
     }
 
     return (
@@ -102,6 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             value={{
                 email,
                 name,
+                plan,
+                isPaid: plan !== "free",
                 isAuthenticated: email !== null,
                 checking,
                 login,
