@@ -55,7 +55,7 @@ export function CasesPage() {
                         {cases.map((item) => (
                             <li
                                 key={item.id}
-                                className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface px-5 py-4 transition-colors hover:border-line-hover hover:bg-surface-hover"
+                                className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface px-5 py-4 transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-hover hover:bg-surface-hover motion-reduce:hover:translate-y-0"
                             >
                                 <div className="min-w-0">
                                     <Link to={`/cases/${item.id}`} className={caseTitle}>

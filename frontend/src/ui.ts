@@ -3,13 +3,13 @@
 // alert boxes identical everywhere without re-writing the utility list each time.
 
 export const btnPrimary =
-  "bg-accent text-gold-ink rounded-card px-[1.1rem] py-[0.6rem] text-[0.95rem] font-semibold cursor-pointer transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-accent";
+  "bg-accent text-gold-ink rounded-card px-[1.1rem] py-[0.6rem] text-[0.95rem] font-semibold cursor-pointer transition-[color,background-color,transform] duration-150 hover:bg-accent-hover hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-accent disabled:hover:translate-y-0";
 
 export const btnSecondary =
-  "inline-flex items-center px-4 py-[0.55rem] text-[0.9rem] font-semibold text-muted bg-transparent border border-line rounded-card no-underline cursor-pointer transition-colors hover:text-fg hover:border-line-hover hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-muted disabled:hover:border-line disabled:hover:bg-transparent";
+  "inline-flex items-center px-4 py-[0.55rem] text-[0.9rem] font-semibold text-muted bg-transparent border border-line rounded-card no-underline cursor-pointer transition-[color,background-color,border-color,transform] duration-150 hover:text-fg hover:border-line-hover hover:bg-surface-hover hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-muted disabled:hover:border-line disabled:hover:bg-transparent disabled:hover:translate-y-0";
 
 export const textInput =
-  "w-full bg-base border border-line rounded-lg px-[0.8rem] py-[0.6rem] text-fg text-[0.95rem] transition-colors focus:outline-none focus:border-accent";
+  "w-full bg-canvas border border-line rounded-lg px-[0.8rem] py-[0.6rem] text-fg text-[0.95rem] transition-colors focus:outline-none focus:border-accent";
 
 export const dangerAlert = "mt-4 rounded-card bg-danger-bg px-4 py-3 text-danger";
 
@@ -44,7 +44,7 @@ export const authLink = "font-semibold text-accent no-underline hover:text-accen
 export const pricingGrid =
   "mt-7 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5";
 export const pricingCard =
-  "relative flex flex-col rounded-card border border-line bg-surface px-6 py-[26px]";
+  "relative flex flex-col rounded-card border border-line bg-surface px-6 py-[26px] transition-transform duration-200 hover:-translate-y-1 motion-reduce:hover:translate-y-0";
 export const pricingCardFeatured =
   "border-accent shadow-[0_0_0_1px_var(--color-accent-soft),var(--shadow-card)]";
 export const pricingCardCurrent = "border-accent shadow-[0_0_0_1px_var(--color-accent-soft)]";

@@ -28,7 +28,7 @@ export function Avatar({ email, name, size = "sm", paid = false }: AvatarProps) 
       {initialsFor(email, name)}
       {paid && (
         <span
-          className="absolute -top-1 -right-1 grid h-[1.05em] w-[1.05em] place-items-center rounded-full bg-accent text-[0.6em] leading-none text-black shadow-[0_0_0_2px_var(--color-base)]"
+          className="absolute -top-1 -right-1 grid h-[1.05em] w-[1.05em] place-items-center rounded-full bg-accent text-[0.6em] leading-none text-black shadow-[0_0_0_2px_var(--color-canvas)]"
           title="Paid plan"
         >
           ★

@@ -35,7 +35,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Kept mounted so it can animate out; visibility:hidden takes it out of the tab
           order while closed, delayed so the slide-out finishes first. */}
       <aside
-        className={`fixed top-0 left-0 z-30 flex h-screen w-[236px] flex-col gap-7 overflow-hidden border-r border-line bg-base px-4 py-6 motion-reduce:!transition-none ${
+        className={`fixed top-0 left-0 z-30 flex h-screen w-[236px] flex-col gap-7 overflow-hidden border-r border-line bg-canvas px-4 py-6 motion-reduce:!transition-none ${
           open
             ? "visible translate-x-0 [transition:transform_0.24s_ease,visibility_0s]"
             : "invisible -translate-x-full [transition:transform_0.24s_ease,visibility_0s_linear_0.24s]"

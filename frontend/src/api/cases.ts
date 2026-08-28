@@ -65,3 +65,14 @@ export function formatSavedAt(createdAt: string): string {
         minute: "2-digit",
     });
 }
+
+/** Date only (no time) — used where the clock time adds noise, e.g. "Member since". */
+export function formatSavedDate(createdAt: string): string {
+    const parsed = new Date(`${createdAt.replace(" ", "T")}Z`);
+    if (Number.isNaN(parsed.getTime())) return createdAt;
+    return parsed.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
