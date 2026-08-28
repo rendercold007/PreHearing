@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Avatar } from "./Avatar";
+import { fetchBillingStatus, type BillingStatus } from "../api/billing";
 
 export function UserMenu() {
   const { email, name, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
+
+  useEffect(() => {
+    if (!open || billing) return;
+    fetchBillingStatus().then(setBilling).catch(() => undefined);
+  }, [open, billing]);
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +64,17 @@ export function UserMenu() {
               <span className="user-dropdown-email">{email}</span>
             </span>
           </div>
+          {billing && (
+            <div className="user-dropdown-plan">
+              <span className="user-dropdown-plan-name">{billing.plan} plan</span>
+              <span className="user-dropdown-plan-usage">
+                {billing.used}/{billing.limit} analyses this month
+              </span>
+            </div>
+          )}
+          <Link to="/pricing" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>
+            Plans &amp; pricing
+          </Link>
           <Link to="/profile" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>
             Profile
           </Link>

@@ -2,6 +2,8 @@ import type { CaseAnalysis } from "../types";
 import { clearSession, getStoredSession } from "./auth";
 import { API_BASE_URL } from "./config";
 
+export class QuotaExceededError extends Error {}
+
 export interface StageEvent {
     stage: string;
     /** "failed" means the stage crashed and was skipped — the run continues without it. */
@@ -34,6 +36,13 @@ export async function analyzeCaseFiles(
     if(response.status === 401){
         clearSession();
         throw new Error("Your session has expired. Please log in again.");
+    }
+
+    if(response.status === 402){
+        const errorBody = await response.json().catch(() => null);
+        throw new QuotaExceededError(
+            errorBody?.detail ?? "You've reached your plan's monthly limit.",
+        );
     }
 
     if(!response.ok){

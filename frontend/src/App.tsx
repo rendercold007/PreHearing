@@ -4,6 +4,7 @@ import { AnalyzePage } from "./pages/AnalyzePage";
 import { CasesPage } from "./pages/CasesPage";
 import { CaseDetailPage } from "./pages/CaseDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import {PricingPage} from "./pages/PricingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -50,6 +51,14 @@ function App(){
                             <ProfilePage />
                         </RequireAuth>
                     }
+                />
+                <Route
+                path="/pricing"
+                element={
+                    <RequireAuth>
+                        <PricingPage />
+                    </RequireAuth>
+                }
                 />
             </Routes>
         </AuthProvider>

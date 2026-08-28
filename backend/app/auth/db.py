@@ -55,6 +55,33 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
 
+CREATE TABLE IF NOT EXISTS subscriptions (
+    user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    plan TEXT NOT NULL DEFAULT 'free',
+    status TEXT NOT NULL DEFAULT 'inactive',
+    razorpay_subscription_id TEXT,
+    razorpay_customer_id TEXT,
+    current_period_end TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_rzp
+    ON subscriptions(razorpay_subscription_id)
+    WHERE razorpay_subscription_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS usage_counters (
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    period TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, period)
+);    
+
+CREATE TABLE IF NOT EXISTS billing_webhook_events(
+    event_id TEXT PRIMARY KEY,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Columns added after the tables first shipped. ADD COLUMN IF NOT EXISTS is a no-op
 -- on a database that already has them, and creates them on one that predates them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';

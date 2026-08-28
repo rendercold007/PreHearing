@@ -8,6 +8,7 @@ from app.api.routes import router
 from app.auth.db import init_db, reset_pool
 from app.auth.routes import router as auth_router
 from app.cases.routes import router as cases_router
+from app.billing.routes import router as billing_router
 from app.config import get_settings
 
 
@@ -63,4 +64,5 @@ async def health():
 
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(billing_router, prefix="/api")
 app.include_router(cases_router, prefix="/api")

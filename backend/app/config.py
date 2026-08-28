@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     # the /api/auth/google endpoint 503s and the frontend hides the Google button.
     google_client_id: str = ""
 
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+
+    razorpay_plan_pro: str = ""
+    razorpay_plan_plus: str = ""
+
+    quota_free: int = 2
+    quota_pro: int = 30
+    quota_plus: int = 75
+
     # Upload guardrails. Without these a single request can read an unbounded number
     # of bytes into memory before anything else runs.
     max_files: int = 20
@@ -80,6 +91,13 @@ class Settings(BaseSettings):
             "mid": self.openrouter_model_mid,
             "strong": self.openrouter_model_strong,
         }[tier]
+
+    def quota_for_plan(self, plan: str) -> int:
+        return{
+            "free": self.quota_free,
+            "pro": self.quota_pro,
+            "plus": self.quota_plus,
+        }.get(plan, self.quota_free)    
 
 
 @lru_cache

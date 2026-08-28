@@ -10,6 +10,7 @@ from app.arguments.generator import generate_arguments
 from app.auth.ratelimit import check_rate_limit
 from app.auth.routes import CurrentUser, get_current_user
 from app.cases.store import save_case
+from app.billing.store import increment_usage, quota_status
 from app.config import get_settings
 from app.ingest.parser import UnsupportedFileType, budget_chunks, parse_documents
 from app.issues.identifier import identify_issues
@@ -76,6 +77,15 @@ async def analyze_case(
     check_rate_limit(
         f"analyze:{user.id}", settings.analyze_rate_limit, settings.analyze_rate_window_seconds
     )
+    quota = await run_in_threadpool(quota_status, user.id)
+    if quota["remaining"] <= 0:
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                f"You've used all {quota['limit']} analyses on the {quota['plan']} "
+                f"plan this month. Upgrade your plan to run more."
+            )
+        )
     enforce_upload_limits(files, settings)
 
     raw_files = [(f.filename, await f.read()) for f in files]
@@ -223,6 +233,11 @@ async def analyze_case(
             analysis.warnings.append(
                 "This analysis could not be saved to your case history."
             )
+
+        try:
+            await run_in_threadpool(increment_usage, user.id)
+        except Exception:
+            logger.exception("Recording analysis usage failed")        
 
         yield _event(
             {"type": "result", "analysis": analysis.model_dump(), "case_id": case_id}
