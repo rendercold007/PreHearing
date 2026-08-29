@@ -31,7 +31,7 @@ export const caseMeta = "mt-1 mb-0 text-[0.85rem] text-muted";
 export const caseEmpty = "mt-6 text-muted";
 
 // Auth / forgot / reset pages.
-export const authCard = "w-full max-w-[400px] rounded-card border border-line bg-surface p-8";
+export const authCard = "w-full max-w-[400px] rounded-card border border-line bg-surface p-6 sm:p-8";
 export const authTitle = "gradient-text mb-[0.4rem] mt-0 text-[1.4rem] font-bold";
 export const authSubtitle = "mt-0 mb-6 text-[0.9rem] text-muted";
 export const authForm = "flex flex-col items-stretch gap-4";

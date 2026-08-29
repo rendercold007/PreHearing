@@ -22,11 +22,11 @@ export function Modal({ title, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-[rgba(4,5,8,0.72)] px-6 py-16 backdrop-blur-[4px] animate-overlay-fade"
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-[rgba(4,5,8,0.72)] px-4 py-8 backdrop-blur-[4px] animate-overlay-fade sm:px-6 sm:py-16"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[720px] rounded-card border border-line bg-surface p-8 shadow-card animate-modal-slide"
+        className="relative w-full max-w-[720px] rounded-card border border-line bg-surface p-5 shadow-card animate-modal-slide [overflow-wrap:break-word] sm:p-8"
         onClick={stopPropagation}
         role="dialog"
         aria-modal="true"

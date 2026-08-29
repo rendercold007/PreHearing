@@ -73,7 +73,7 @@ export function UploadPage({status, error, progress, onFilesSelected} : UploadPa
     }
 
     return(
-        <section className={`${surfaceCard} mb-6 p-8`}>
+        <section className={`${surfaceCard} mb-6 p-5 sm:p-8`}>
             <h1 className={pageTitle}>New analysis</h1>
             <p className={pageLede}>
                 Upload the pleadings and exhibits for one case. Everything you add is analyzed

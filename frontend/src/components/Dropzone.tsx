@@ -149,7 +149,7 @@ export function Dropzone({ files, onFilesChange, disabled = false }: DropzonePro
               key={`${file.name}:${file.size}`}
               className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-hover py-[0.35rem] pr-[0.5rem] pl-[0.8rem] text-[0.85rem]"
             >
-              <span className="max-w-[260px] truncate">{file.name}</span>
+              <span className="max-w-[150px] truncate sm:max-w-[260px]">{file.name}</span>
               <span className="text-[0.78rem] text-muted">{formatSize(file.size)}</span>
               {!disabled && (
                 <button

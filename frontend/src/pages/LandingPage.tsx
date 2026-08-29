@@ -65,9 +65,12 @@ const CARD_LIFT =
   "transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-line-hover hover:shadow-[0_18px_40px_rgba(0,0,0,0.5)] motion-reduce:transition-none motion-reduce:hover:translate-y-0";
 const BTN_LIFT =
   "transition-transform duration-150 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0";
-const SECTION = "mx-auto max-w-[1200px] px-12 pt-[74px]";
+// Horizontal gutter — tight on phones, roomy on desktop. Reused everywhere so the
+// whole page shares one responsive margin.
+const PX = "px-5 sm:px-8 lg:px-12";
+const SECTION = `mx-auto max-w-[1200px] ${PX} pt-14 sm:pt-[74px]`;
 const EYEBROW = `${MONO} mb-3 text-xs uppercase tracking-[0.08em] text-accent`;
-const H2 = "font-display text-[40px] font-bold leading-[1.05] tracking-[-0.025em]";
+const H2 = "font-display text-[30px] sm:text-[40px] font-bold leading-[1.1] sm:leading-[1.05] tracking-[-0.025em]";
 const CHECK = (
   <svg
     width="16"
@@ -91,12 +94,12 @@ export function LandingPage() {
     <main className="text-fg">
       {/* Nav — full width, logo hard left */}
       <header className="border-b border-white/[0.06]">
-        <div className="flex items-center justify-between px-12 py-[22px]">
+        <div className={`flex items-center justify-between ${PX} py-[22px]`}>
           <Logo />
-          <nav className={`${MONO} flex items-center gap-7 text-sm text-[#a69c8d]`}>
-            <a href="#how" className="hover:text-fg">how it works</a>
-            <a href="#sample" className="hover:text-fg">sample</a>
-            <a href="#pricing" className="hover:text-fg">pricing</a>
+          <nav className={`${MONO} flex items-center gap-4 text-sm text-[#a69c8d] sm:gap-7`}>
+            <a href="#how" className="hidden hover:text-fg sm:inline">how it works</a>
+            <a href="#sample" className="hidden hover:text-fg sm:inline">sample</a>
+            <a href="#pricing" className="hidden hover:text-fg sm:inline">pricing</a>
             {!isAuthenticated && (
               <Link to="/login" className={`rounded-[9px] border border-white/[0.14] px-4 py-2 text-fg ${BTN_LIFT}`}>
                 Sign in
@@ -110,13 +113,13 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-14 px-12 pt-[72px] pb-[58px] lg:grid-cols-2">
+      <section className={`mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-14 ${PX} pt-14 pb-[58px] sm:pt-[72px] lg:grid-cols-2`}>
         <div>
           <span className={`${MONO} mb-[26px] inline-flex items-center gap-2 rounded-full border border-accent/35 bg-accent/[0.08] px-3 py-1.5 text-xs tracking-[0.04em] text-accent`}>
             <span className="h-1.5 w-1.5 rounded-full bg-coral shadow-[0_0_10px_var(--color-coral)]" />
             HEARING PREP · AUTOMATED
           </span>
-          <h1 className="mb-[22px] font-display text-[60px] font-bold leading-[1.02] tracking-[-0.03em]">
+          <h1 className="mb-[22px] font-display text-[40px] font-bold leading-[1.05] tracking-[-0.03em] sm:text-[52px] sm:leading-[1.02] lg:text-[60px]">
             Every argument,
             <br />
             already{" "}
@@ -139,7 +142,7 @@ export function LandingPage() {
               See a live run
             </a>
           </div>
-          <div className={`${MONO} flex gap-[26px] text-xs text-[#8f877a]`}>
+          <div className={`${MONO} flex flex-wrap gap-x-[26px] gap-y-2 text-xs text-[#8f877a]`}>
             <span><span className="text-[15px] text-fg">7</span> · stage pipeline</span>
             <span><span className="text-[15px] text-fg">0</span> · invented citations</span>
             <span><span className="text-[15px] text-fg">2m</span> · avg. run</span>
@@ -185,7 +188,7 @@ export function LandingPage() {
 
       {/* Trust strip */}
       <section className="border-y border-white/[0.06]">
-        <div className={`${MONO} mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 px-12 py-4 text-xs uppercase tracking-[0.04em] text-[#8f877a]`}>
+        <div className={`${MONO} mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 ${PX} py-4 text-xs uppercase tracking-[0.04em] text-[#8f877a]`}>
           <span>Built for solo &amp; small-firm advocates</span>
           <span className="text-[#4d473e]">/</span>
           <span>PDF · DOCX · scanned filings</span>
@@ -197,7 +200,7 @@ export function LandingPage() {
       </section>
 
       {/* Bento */}
-      <section className="mx-auto max-w-[1200px] px-12 pt-[60px]">
+      <section className={`mx-auto max-w-[1200px] ${PX} pt-14 sm:pt-[60px]`}>
         <div className="grid auto-rows-[172px] grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className={`flex flex-col justify-between rounded-2xl border border-line bg-[linear-gradient(160deg,rgba(227,178,79,0.12),rgba(255,255,255,0.02))] p-[26px] md:row-span-2 ${CARD_LIFT}`}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -268,7 +271,7 @@ export function LandingPage() {
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
             <p className={EYEBROW}>The anatomy of one argument</p>
-            <h2 className={`${H2} mb-[18px] !text-[38px]`}>Not a summary — a point you can stand up and make.</h2>
+            <h2 className={`${H2} mb-[18px] sm:!text-[38px]`}>Not a summary — a point you can stand up and make.</h2>
             <p className="mb-[22px] text-base leading-[1.62] text-[#b1a898]">
               Every argument maps from issue to facts to conclusion, and arrives with the counter
               opposing counsel will raise — and your answer to it. The facts cite the page they came
@@ -387,8 +390,8 @@ export function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-[820px] px-12 pt-[74px]">
-        <h2 className="mb-[34px] text-center font-display text-[32px] font-bold tracking-[-0.02em]">
+      <section className={`mx-auto max-w-[820px] ${PX} pt-14 sm:pt-[74px]`}>
+        <h2 className="mb-[34px] text-center font-display text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
           Questions, answered
         </h2>
         <div className="flex flex-col gap-3">
@@ -411,10 +414,10 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="mx-auto max-w-[1200px] px-12 pt-[74px] pb-10">
-        <div className="rounded-[22px] border border-accent/35 bg-[radial-gradient(70%_120%_at_50%_0%,rgba(227,178,79,0.16),transparent_68%),rgba(255,255,255,0.02)] px-10 py-[62px] text-center">
-          <h2 className="mb-3 font-display text-[46px] font-bold tracking-[-0.03em]">Walk in prepared.</h2>
-          <p className="mb-[30px] text-[17px] text-[#b1a898]">
+      <section className={`mx-auto max-w-[1200px] ${PX} pt-14 pb-10 sm:pt-[74px]`}>
+        <div className="rounded-[22px] border border-accent/35 bg-[radial-gradient(70%_120%_at_50%_0%,rgba(227,178,79,0.16),transparent_68%),rgba(255,255,255,0.02)] px-6 py-12 text-center sm:px-10 sm:py-[62px]">
+          <h2 className="mb-3 font-display text-[32px] font-bold tracking-[-0.03em] sm:text-[46px]">Walk in prepared.</h2>
+          <p className="mb-[30px] text-[15px] text-[#b1a898] sm:text-[17px]">
             Upload your case file and get a stress-tested argument pack in minutes.
           </p>
           <Link
@@ -429,7 +432,7 @@ export function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/[0.06]">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-12 pt-[30px] pb-11">
+        <div className={`mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 ${PX} pt-[30px] pb-11`}>
           <Logo />
           <p className={`${MONO} text-right text-xs text-[#8f877a]`}>
             A preparation tool, not a law firm — output is not legal advice. © {new Date().getFullYear()} Casper
