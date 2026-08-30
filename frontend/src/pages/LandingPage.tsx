@@ -4,6 +4,8 @@ import { Logo } from "../components/Logo";
 import { useAuth } from "../auth/AuthContext";
 import { PLAN_CARDS } from "../data/plans";
 
+const CONTACT_EMAIL = "aniketsingh8072@gmail.com";
+
 const PIPELINE = [
   { n: "1", title: "Ingest", desc: "Parse & de-duplicate every page." },
   { n: "2", title: "Understand", desc: "Parties, facts, claims, disputes." },
@@ -100,6 +102,7 @@ export function LandingPage() {
             <a href="#how" className="hidden hover:text-fg sm:inline">how it works</a>
             <a href="#sample" className="hidden hover:text-fg sm:inline">sample</a>
             <a href="#pricing" className="hidden hover:text-fg sm:inline">pricing</a>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="hidden hover:text-fg sm:inline">contact</a>
             {!isAuthenticated && (
               <Link to="/login" className={`rounded-[9px] border border-white/[0.14] px-4 py-2 text-fg ${BTN_LIFT}`}>
                 Sign in
@@ -434,9 +437,15 @@ export function LandingPage() {
       <footer className="border-t border-white/[0.06]">
         <div className={`mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 ${PX} pt-[30px] pb-11`}>
           <Logo />
-          <p className={`${MONO} text-right text-xs text-[#8f877a]`}>
-            A preparation tool, not a law firm — output is not legal advice. © {new Date().getFullYear()} Casper
-          </p>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <nav className={`${MONO} flex items-center gap-5 text-xs text-[#8f877a]`}>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-fg">Contact</a>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-fg">Help</a>
+            </nav>
+            <p className={`${MONO} text-right text-xs text-[#8f877a]`}>
+              A preparation tool, not a law firm — output is not legal advice. © {new Date().getFullYear()} Casper
+            </p>
+          </div>
         </div>
       </footer>
     </main>
