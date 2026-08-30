@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logoMark from "../assets/logo-c.png";
+import logoMark from "../assets/logo-badge.png";
 
 export function Logo() {
   return (
