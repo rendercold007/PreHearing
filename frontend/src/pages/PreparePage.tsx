@@ -1,5 +1,14 @@
+import { Download, FileText, ListChecks, Mic } from "lucide-react";
 import type { HearingPrep } from "../types";
-import { btnPrimary, h2Title, h3Sub, olDecimal, ulDisc, liItem } from "../ui";
+import { btnSecondary } from "../ui";
+import { Card } from "../components/ui/card";
+import { SectionHeading } from "../components/ui/section-heading";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 
 interface PreparePageProps {
   hearingPrep: HearingPrep;
@@ -37,41 +46,95 @@ function handleExport(hearingPrep: HearingPrep) {
 
 export function PreparePage({ hearingPrep }: PreparePageProps) {
   return (
-    <section>
-      <h2 className={h2Title}>Prepare</h2>
-      <button type="button" className={`${btnPrimary} mb-2`} onClick={() => handleExport(hearingPrep)}>
-        Export as text
-      </button>
+    <section className="flex flex-col gap-6">
+      <div>
+        <SectionHeading icon={FileText} title="Hearing brief" />
+        <Card className="p-4">
+          <p className="m-0 text-[0.92rem] leading-relaxed text-fg">{hearingPrep.brief}</p>
+        </Card>
+      </div>
 
-      <h3 className={h3Sub}>Hearing Brief</h3>
-      <p className="my-2">{hearingPrep.brief}</p>
+      <div>
+        <SectionHeading
+          icon={Mic}
+          title="Oral argument outline"
+          count={hearingPrep.outline.length}
+        />
+        {hearingPrep.outline.length === 0 ? (
+          <p className="m-0 text-muted">No outline was generated.</p>
+        ) : (
+          <Accordion
+            type="multiple"
+            defaultValue={hearingPrep.outline.map((_, i) => `outline-${i}`)}
+            className="flex flex-col gap-2.5"
+          >
+            {hearingPrep.outline.map((section, index) => (
+              <AccordionItem key={section.heading} value={`outline-${index}`}>
+                <AccordionTrigger>
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-[0.8rem] font-semibold text-accent">
+                      {index + 1}
+                    </span>
+                    <span className="leading-snug">{section.heading}</span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                    {section.talking_points.map((point) => (
+                      <li
+                        key={point}
+                        className="flex gap-2 text-[0.88rem] leading-relaxed text-fg"
+                      >
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
+      </div>
 
-      <h3 className={h3Sub}>Oral Argument Outline</h3>
-      {hearingPrep.outline.length === 0 && <p className="my-2">No outline was generated.</p>}
-      <ol className={olDecimal}>
-        {hearingPrep.outline.map((section) => (
-          <li key={section.heading} className={liItem}>
-            <p className="my-1">{section.heading}</p>
-            <ul className={ulDisc}>
-              {section.talking_points.map((point) => (
-                <li key={point} className={liItem}>{point}</li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
+      <div>
+        <SectionHeading
+          icon={ListChecks}
+          title="Checklist"
+          count={hearingPrep.checklist.length}
+        />
+        {hearingPrep.checklist.length === 0 ? (
+          <p className="m-0 text-muted">No checklist items were generated.</p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {hearingPrep.checklist.map((entry) => (
+              <li
+                key={entry.item}
+                className="flex items-start gap-2.5 rounded-card border border-line bg-white/[0.02] px-3 py-2.5"
+              >
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-line" />
+                <span className="text-[0.9rem] leading-relaxed text-fg">
+                  <span className="mr-1.5 font-display text-[0.72rem] font-semibold uppercase tracking-[0.06em] text-accent">
+                    {entry.category}
+                  </span>
+                  {entry.item}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-      <h3 className={h3Sub}>Checklist</h3>
-      {hearingPrep.checklist.length === 0 && (
-        <p className="my-2">No checklist items were generated.</p>
-      )}
-      <ul className={ulDisc}>
-        {hearingPrep.checklist.map((entry) => (
-          <li key={entry.item} className={liItem}>
-            <strong>{entry.category}:</strong> {entry.item}
-          </li>
-        ))}
-      </ul>
+      <div>
+        <button
+          type="button"
+          className={`${btnSecondary} inline-flex items-center gap-2`}
+          onClick={() => handleExport(hearingPrep)}
+        >
+          <Download className="h-4 w-4" />
+          Export as text
+        </button>
+      </div>
     </section>
   );
 }

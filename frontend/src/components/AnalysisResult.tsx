@@ -10,18 +10,13 @@ import { StressTestPage } from "../pages/StressTestPage";
 import { PreparePage } from "../pages/PreparePage";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { btnPrimary, btnSecondary, warnAlert, warnAlertTitle } from "../ui";
 
 type SectionKey = "understanding" | "issues" | "research" | "arguments" | "stressTest" | "prepare";
 
 /** Stage 04 runs twice — once for our authorities, once flipped to the opponent's. */
 type ResearchPass = "supporting" | "adverse";
-
-function segmentedOption(active: boolean): string {
-    return `cursor-pointer rounded-lg border-0 bg-transparent px-[0.9rem] py-[0.4rem] text-[0.88rem] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-        active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:text-fg"
-    }`;
-}
 
 function truncate(text: string, max: number): string {
     const trimmed = text.trim();
@@ -226,52 +221,30 @@ export function AnalysisResult({ analysis, caseId, onAnalyzeAnother }: AnalysisR
                         setResearchPass("supporting");
                     }}
                 >
-                    <div
-                        className="mb-[0.6rem] inline-flex gap-1 rounded-[10px] border border-line bg-white/[0.02] p-1"
-                        role="tablist"
-                        aria-label="Research pass"
+                    <Tabs
+                        value={researchPass}
+                        onValueChange={(value) => setResearchPass(value as ResearchPass)}
                     >
-                        <button
-                            type="button"
-                            role="tab"
-                            id="research-tab-supporting"
-                            aria-selected={researchPass === "supporting"}
-                            aria-controls="research-panel"
-                            className={segmentedOption(researchPass === "supporting")}
-                            onClick={() => setResearchPass("supporting")}
-                        >
-                            Supporting ({countAuthorities(analysis.research)})
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            id="research-tab-adverse"
-                            aria-selected={researchPass === "adverse"}
-                            aria-controls="research-panel"
-                            className={segmentedOption(researchPass === "adverse")}
-                            onClick={() => setResearchPass("adverse")}
-                        >
-                            Opposing ({countAuthorities(analysis.adverse_research)})
-                        </button>
-                    </div>
-                    <p className="mb-4 text-[0.85rem] text-muted">
-                        {researchPass === "supporting"
-                            ? "Authorities that support the case as pleaded."
-                            : "Authorities the other side would rely on — these feed the stress test."}
-                    </p>
-                    <div
-                        id="research-panel"
-                        role="tabpanel"
-                        aria-labelledby={`research-tab-${researchPass}`}
-                    >
-                        <ResearchPage
-                            research={
-                                researchPass === "supporting"
-                                    ? analysis.research
-                                    : analysis.adverse_research
-                            }
-                        />
-                    </div>
+                        <TabsList className="mb-3">
+                            <TabsTrigger value="supporting">
+                                Supporting ({countAuthorities(analysis.research)})
+                            </TabsTrigger>
+                            <TabsTrigger value="adverse">
+                                Opposing ({countAuthorities(analysis.adverse_research)})
+                            </TabsTrigger>
+                        </TabsList>
+                        <p className="mb-4 text-[0.85rem] text-muted">
+                            {researchPass === "supporting"
+                                ? "Authorities that support the case as pleaded."
+                                : "Authorities the other side would rely on — these feed the stress test."}
+                        </p>
+                        <TabsContent value="supporting">
+                            <ResearchPage research={analysis.research} />
+                        </TabsContent>
+                        <TabsContent value="adverse">
+                            <ResearchPage research={analysis.adverse_research} />
+                        </TabsContent>
+                    </Tabs>
                 </Modal>
             )}
             {openSection === "arguments" && (

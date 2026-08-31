@@ -40,6 +40,9 @@ export function Modal({ title, onClose, children }: ModalProps) {
         >
           ✕
         </button>
+        <div className="mb-5 border-b border-line pb-4 pr-10">
+          <h2 className="m-0 text-[1.3rem] font-bold tracking-[-0.01em]">{title}</h2>
+        </div>
         {children}
       </div>
     </div>

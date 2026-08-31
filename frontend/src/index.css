@@ -35,6 +35,25 @@
   --animate-modal-slide: modal-slide 0.22s ease;
   --animate-card-in: card-in 0.45s ease both;
   --animate-stage-pulse: stage-pulse 1.6s ease-in-out infinite;
+  --animate-accordion-down: accordion-down 0.2s ease;
+  --animate-accordion-up: accordion-up 0.2s ease;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
 
   @keyframes overlay-fade {
     from {
