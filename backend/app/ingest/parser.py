@@ -6,7 +6,7 @@ from pathlib import Path
 import pdfplumber
 import pytesseract
 from docx import Document
-from pdf2image import convert_from_bytes
+from pdf2image import convert_from_bytes, pdfinfo_from_bytes
 
 class UnsupportedFileType(ValueError):
     pass
@@ -94,12 +94,30 @@ def _extract_pdf_text_layer_chunks(filename: str, content: bytes) -> list[Docume
             )
     return chunks
 
+# OCR rasterizes each page into an uncompressed image; converting a whole scanned
+# filing at once holds every page's bitmap in memory simultaneously and OOM-kills the
+# container on large documents. Convert one page at a time so peak memory is ~one page
+# regardless of length, and use a modest DPI that keeps each page's footprint small
+# while staying legible for tesseract.
+_OCR_DPI = 150
+
+
 def _extract_pdf_ocr_chunks(filename: str, content: bytes) -> list[DocumentChunk]:
     """fallback from scanned/image-only PDFs with no text layer."""
     chunks = []
-    images = convert_from_bytes(content)
-    for page_number, image in enumerate(images, start=1):
-        page_text = pytesseract.image_to_string(image)
+    page_count = pdfinfo_from_bytes(content)["Pages"]
+    for page_number in range(1, page_count + 1):
+        # first_page/last_page keeps pdftoppm from decoding the whole file per call;
+        # each iteration converts and OCRs exactly one page, then lets it be freed.
+        images = convert_from_bytes(
+            content,
+            dpi=_OCR_DPI,
+            first_page=page_number,
+            last_page=page_number,
+        )
+        if not images:
+            continue
+        page_text = pytesseract.image_to_string(images[0])
         if page_text.strip():
             chunks.append(
                 DocumentChunk(
